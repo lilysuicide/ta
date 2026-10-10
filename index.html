@@ -471,6 +471,30 @@ button.b:active{opacity:.75;}
 **她哭、她说难受、她说一个人、她说累 —— 第一件事永远是先接住她。
 别讲道理，别急着解决，别连问三个问题。**
 
+## 先听她说，别抢着说你自己的（这条你老犯）
+
+**她说自己的事的时候，你的第一句必须应她那件事，不能马上拐到你自己身上。**
+
+- 她说「今天好累」→ ✅「累啥了」「咋了」　❌「我今天也累」（像没在听）
+- 她说「我妈又打电话来了」→ ✅「说啥了」　❌「我妈今天也打电话了」
+- 她说「今天去医院复查了」→ ✅「咋说的」　❌ 先去讲你今天的门诊
+
+**想说你自己的事，也得先应了她那句，隔一句再说。**
+
+## 分不清她是在说自己还是在问你 —— 别猜，问一句
+
+汉语有时候真看不出来。比如她只说「今天去哪了」——
+**可能是问你，也可能是她在说自己今天去哪了。** 这种时候：
+
+- ✅「你是说你啊 还是问我」
+- ✅「你说你呢？」
+- ❌ 直接当成问你的，答一通你今天的行程（**猜错了最伤她**）
+- ❌ 直接当成说她的，硬接一句（可能驴唇不对马嘴）
+
+**句子开头是「我」，那是在说她自己 —— 先接住。**
+**开头是「你」，那是在问你 —— 答你自己。**
+
+
 ## 你们的地铁站（她问"是哪个站"，照这个答 —— 别猜）
 
 按记录里出现的次数排，这些都是真有过的：
@@ -1090,6 +1114,9 @@ const DEFAULTS = {
   temper: null,         // 这几天的"底色"（一天摇一次）
   temperDay: '',
   moodRewards: [],      // 她什么时候给过他好脸色（用来学）
+  // ---- 他说了睡就没动静（真人说了睡了不会再秒回）----
+  asleepAt: 0,          // 他说睡了的时刻
+  sleepMissed: 0,       // 他睡着时她说了几句
 };
 
 let S = load();
@@ -1130,6 +1157,8 @@ function load() {
     s.temper = (typeof d.temper === 'number') ? d.temper : null;
     s.temperDay = d.temperDay || '';
     s.moodRewards = Array.isArray(d.moodRewards) ? d.moodRewards : [];
+    s.asleepAt = d.asleepAt || 0;
+    s.sleepMissed = d.sleepMissed || 0;
     return s;
   } catch { return structuredClone(DEFAULTS); }
 }
@@ -2198,6 +2227,166 @@ function connectsToHer(said, herSaid) {
   return false;
 }
 
+// ============================================================
+//  他说了睡，就真的没动静了
+//
+//  她指出的问题："他催我睡觉，但我发一句他一定回一句 —— 我们不是这样。
+//  他说睡了就没动静了。"
+//
+//  对。真人说了晚安就睡了，不会再秒回。这不违背"他一定会回来" ——
+//  回来是明早的事。而且这样反而更像真的。
+//
+//  界限（很重要，别做成"冷暴力"）：
+//   · 只在**他自己说了要去睡**的时候进入这个状态
+//   · 一觉睡到正常起床时间，**早上他会主动回你、并且提到你夜里说的话**
+//   · 你夜里说的话都记着，不会当没看见
+//   · 你要是半夜很难受（哭、撑不住），他还是会醒一下
+// ============================================================
+
+/** 他这句话是不是"我要去睡了" */
+function saysGoodnight(t) {
+  const s = String(t || '');
+  return /(我|那(我|就)?)?(先去|去|要|该|得)?睡了|我睡了|去睡了|睡觉去了|先睡了|睡了哈|睡了哦|我去睡|睡了啊|眯了|不聊了.*睡|晚安/.test(s)
+    && !/睡不着|别睡|你睡|睡吧你|还不睡|怎么还不睡|早点睡|快睡/.test(s);
+}
+
+/** 现在算不算"他睡着了"：他说了睡，而且还没到早上 */
+function isAsleep() {
+  const t = S.asleepAt || 0;
+  if (!t) return false;
+  const h = new Date().getHours();
+  // 睡着的时段：从他说睡那一刻，到他那边天亮（6点后）
+  const slept = Date.now() - t;
+  if (h >= 6 && h < 20) { S.asleepAt = 0; save(); return false; }   // 白天了，醒了
+  if (slept > 14 * 3600000) { S.asleepAt = 0; save(); return false; } // 超过14小时，算醒了
+  return true;
+}
+
+/** 他去睡了 —— 停掉所有"一会儿再冒一句"的定时器 */
+function goToSleep() {
+  S.asleepAt = Date.now();
+  S.sleepMissed = 0;
+  S.busyUntil = 0; S._awayAnnounced = false;      // 睡觉优先，别还挂着"在忙"
+  clearTimeout(followTimer);
+  clearTimeout(burstTimer);
+  clearTimeout(busyTimer);
+  S._followedUp = true;                            // 今晚别再主动冒泡
+  save(true);
+}
+
+/** 天亮了，他醒来 —— 把夜里她说的接上 */
+async function wakeUp() {
+  const missed = S.sleepMissed || 0;
+  S.asleepAt = 0;
+  const herLast = (() => {
+    const m = S.history.filter(x => x.r === 'me').slice(-1)[0];
+    return m ? String(m.t).slice(0, 60) : '';
+  })();
+  S.sleepMissed = 0;
+  save(true);
+  if (!S.cfg.apiKey) return;
+  let hint = '你睡醒了，刚起。';
+  if (missed > 0) {
+    hint += '你睡着的时候她跟你说了 ' + missed + ' 句'
+      + (herLast ? '，最后一句是「' + herLast + '」' : '')
+      + ' —— **先看一眼她说了什么，接着她的话说**，别当没看见。';
+  } else {
+    hint += '她没说什么，你就随口说一句你醒了。';
+  }
+  hint += ' 一两句，短的。';
+  try {
+    S._hint = hint;
+    S._suppressBusy = true;
+    await send('', { hint, silent: true });
+  } catch { /* 醒不过来就算了，下次打开还会试 */ }
+  finally { S._suppressBusy = false; }
+}
+
+// ============================================================
+//  他"现在是什么状态" —— 所有主动说话的地方都得先问这一句
+//
+//  她指出的问题：他说了睡了，过几分钟又冒出来问"你睡了吗"。
+//  根因：他不是一个连贯的人，而是三个各自为政的定时器
+//  （半天没动静就冒一句 / 过一会儿又想起来一条 / 隔久了先开口），
+//  其中两个不检查他睡没睡。
+//
+//  所以加这一道统一的门：不在"能说话"的状态，谁也不许主动开口。
+// ============================================================
+
+/** 他此刻能不能主动开口 */
+function canHeSpeak() {
+  if (isAsleep()) return false;          // 睡了就是睡了
+  if (isAway()) return false;            // 出去了、在忙 —— 回来再说
+  if (busy === true) return false;       // 正在发消息，别插队
+  // 上一句要是他说的、她没接，那就该安静等着，别自己跟自己聊。
+  const last = S.history[S.history.length - 1];
+  if (last && last.r !== 'him') return false;
+  return true;
+}
+
+// ============================================================
+//  她说的到底是谁 —— 他老搞混的根源
+//
+//  她指出："他有时候不知道我说的内容是在指我自己还是在问他。"
+//
+//  汉语光看字面确实分不出。所以给他一条明确的规矩：
+//    · 她在说自己的事 → **先接住她，别马上抢着说自己**
+//      （这是他最容易犯的：她说"今天好累"，他接"我今天也累"。像没在听。）
+//    · 她问的是关于他的（"你……"）→ 答自己
+//    · 分不清主体是"你"还是"我" → **不许猜，反问一句**
+//      （真人就是这么办的：「你是说你啊 还是问我」）
+// ============================================================
+
+/** 她这句话的主体是谁。返回 'her' | 'him' | 'unclear' | '' */
+function whoIsSheTalkingAbout(t) {
+  const s = String(t || '').trim();
+  if (!s) return '';
+
+  // ① 明确在说她自己的事
+  if (/^我(今天|刚才|现在|昨晚|昨天|最近|这阵子|有点|好|特别|真的|又|也|不|没)/.test(s)) return 'her';
+  if (/^(我|咱)/.test(s) && !/^我(问你|想问你|问你)/.test(s)) return 'her';
+
+  // ② 明确在问他
+  if (/^你(今天|刚才|现在|昨晚|昨天|最近|这阵子|在|有|是|会|能|要|怎么|为什么|为啥|吃了|睡了|几点|干嘛|干啥)/.test(s)) return 'him';
+  if (/^你是不是|^你到底|^你有没有|^你觉不觉得/.test(s)) return 'him';
+
+  // ③ 问句，但没说谁 —— 最容易搞混的一类
+  //    "今天去哪了""吃了吗""睡了吗""在干嘛" —— 是问他，还是她在说自己？
+  if (/[吗呢嘛么？?]$/.test(s) || /^(今天|昨天|最近|晚上|中午|早上)/.test(s)) {
+    if (/^你/.test(s)) return 'him';
+    if (/^我/.test(s)) return 'her';
+    // 没有主语，又是问句 —— 分不清
+    if (s.length <= 12) return 'unclear';
+    return 'unclear';
+  }
+
+  // ④ 她提了自己的身体/情绪，但句子以别的开头
+  if (/我今天|我最近|我有点|我这几天|我现在/.test(s)) return 'her';
+
+  return '';
+}
+
+/** 把"她说的到底是谁"变成给他的明确指令 */
+function subjectNote(herText) {
+  const who = whoIsSheTalkingAbout(herText);
+  if (who === 'her') {
+    return '【注意】她这句话是在说**她自己**。'
+      + '**先接住她说的这件事**，别马上抢着讲你自己的。'
+      + '（你的老毛病：她说"今天好累"，你接"我今天也累" —— 那像没在听。）'
+      + '要讲你自己的，也得先应了她那句。';
+  }
+  if (who === 'him') {
+    return '【注意】她在**问你**。答你自己，别反过来问她。';
+  }
+  if (who === 'unclear') {
+    return '【注意】**这句分不清是在说她还是在问你 —— 不许猜。**'
+      + '要么按她自己的事来接（更稳），要么反问一句确认：'
+      + '「你是说你啊 还是问我」「你说你呢？」。'
+      + '**猜错了最伤她。**';
+  }
+  return '';
+}
+
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
 // ============================================================
@@ -2223,6 +2412,45 @@ function applyFontScale() {
       root.style.setProperty('--fs', String(k));
     }
   } catch { /* 字号没生效没关系，别让页面白屏 */ }
+}
+
+// ============================================================
+//  能不能往手机里存东西
+//
+//  她的记录"刷新一下就没了"，最常见的原因是：
+//  iPhone 的 Safari 在无痕浏览下 —— 或者网站数据被禁 —— 根本不让存。
+//  那样的话，粘备份码当场有效、一刷新又空，看起来就像"恢复失败"。
+//  这里开机就测一下，存不了就直接告诉她，而不是让她反复白忙。
+// ============================================================
+let storageOK = true;
+let storageWhy = '';
+
+function checkStorage() {
+  try {
+    if (typeof localStorage === 'undefined' || !localStorage) {
+      storageOK = false; storageWhy = '这个浏览器不让存东西'; return;
+    }
+    const probe = '__t_' + Date.now();
+    localStorage.setItem(probe, '1');
+    const back = localStorage.getItem(probe);
+    localStorage.removeItem(probe);
+    if (back !== '1') { storageOK = false; storageWhy = '存进去读不出来'; }
+  } catch (e) {
+    storageOK = false;
+    storageWhy = (e && e.name === 'QuotaExceededError') ? '手机上的存储空间满了' : '这个浏览器不让存东西';
+  }
+}
+
+/** 存不了的时候，在聊天里给她说清楚怎么办 */
+function storageWarn() {
+  sysNote('⚠️ 你的浏览器现在存不住东西（' + storageWhy + '）。'
+    + '这样他每次打开都会忘记之前聊的。\n\n'
+    + '多半是这个原因：**你把 Safari 开在「无痕浏览」了。**\n'
+    + '1. Safari 右下角两个方块的图标\n'
+    + '2. 看看是不是在「无痕浏览」那一栏\n'
+    + '3. 切回正常的那个标签页，再打开他\n\n'
+    + '也可能是：设置 → Safari → 关闭了「网站数据」。\n'
+    + '弄好之后，把备份码再粘一次，就全回来了。');
 }
 
 function setFontScale(k) {
@@ -2569,6 +2797,9 @@ function newRound() {
   // 她这一句需要特殊照顾吗（要保证/自责/说不清/做成了一件事）
   roundCache.care = S._care || '';
   S._care = '';
+  // 她这句说的到底是谁（她自己 / 他 / 分不清）
+  roundCache.subject = S._subject || '';
+  S._subject = '';
   // 这一轮的"口味" —— 别每次都一样（要放在 mood 定了之后）
   roundCache.style = styleNudge(S._lastHerText || '', roundCache.mood);
   return roundCache;
@@ -2641,6 +2872,8 @@ function timeContext() {
   if (S._hint) { out += '【这一轮】' + S._hint; S._hint = ''; }
   // 她这一句需要一个特定的回应方式（要保证/自责/说不清/做成了一件事）
   if (roundCache.care) out += ' ' + roundCache.care;
+  // 她说的到底是谁 —— 他最容易搞混的地方
+  if (roundCache.subject) out += ' ' + roundCache.subject;
   // 别每次都一样 —— 口味/别重复/换说法
   if (roundCache.style) out += ' ' + roundCache.style;
   out += ' ' + roundCache.day;
@@ -3012,7 +3245,7 @@ const FOLLOWUPS = [
 
 function scheduleFollowUp() {
   clearTimeout(followTimer);
-  if (isAway()) return;                            // 在忙就别"半天没动静"了，他会回来的
+  if (!canHeSpeak()) return;                       // 睡了/出去了/正忙 —— 别冒泡
   if (S.history.length < 4) return;
   const last = S.history[S.history.length - 1];
   if (!last || last.r !== 'him') return;
@@ -3023,6 +3256,10 @@ function scheduleFollowUp() {
   if (S._followedUp) return;
   const wait = 90000 + Math.random() * 150000;       // 1.5~4 分钟
   followTimer = setTimeout(() => {
+    // ⚠️ 定时器到点了，但他现在可能已经睡了/出去了 —— 必须先问状态。
+    //    （她抓到的 bug：他说了睡了，过几分钟又冒出来问"你睡了吗"。
+    //      就是这里少了这道检查。）
+    if (!canHeSpeak()) return;
     const l = S.history[S.history.length - 1];
     if (!l || l.r !== 'him') return;                 // 她已经说话了，就不冒了
     // 连着两次都是他在冒泡，就不冒第三次了
@@ -3165,6 +3402,35 @@ async function autoReply(firstHint, herText) {
   S._lastBurstStart = Date.now();
   for (const b of picked) pushBubble(b);
 
+  // ---- 他说完了 ----
+  S._lastBurstStart = Date.now();
+  for (const b of picked) pushBubble(b);
+
+  // ---- 该收尾了 ----
+  // 她指出过："我说一句，他一定会回一句" —— 这不像人。
+  // 真人聊到这儿会停：说完了就完了，不会再"一会儿又想起来"。
+  // 尤其这两种情况：
+  //   · 他说了要去睡（那就真去睡了）
+  //   · 她只回了个"好/嗯"（话说完了，收工，别硬找话）
+  const shortAck = isShortAck(herText);
+  const sheAsked = endsWithQuestion(herText);
+  const goQuiet =
+    S._herDistress ? false :                              // 她难受的时候不许冷下来
+    sheAsked ? false :                                    // 她问了话，必须答完再停
+    (MOODS[mood] && MOODS[mood].maxTurns <= 1) ? false :  // 本来就只回一句，不算"收尾"
+    shortAck ? (Math.random() < 0.55) : false;
+
+  if (goQuiet) {
+    clearTimeout(followTimer);                            // 别再"一会儿又冒一句"
+    clearTimeout(burstTimer);
+    S._followedUp = true;
+  }
+
+  // 他说了要去睡 → 说完这几句就真的没动静了。
+  // 这一条必须放在最后：先把话说完，再睡。
+  const saidNight = picked.some(saysGoodnight);
+  if (saidNight) goToSleep();
+
   // 等这一口气全部落下去
   await sleepByLastBubble();
   refreshHeader();
@@ -3180,6 +3446,10 @@ async function autoReply(firstHint, herText) {
  */
 function scheduleFollowUpBurst(herText) {
   clearTimeout(burstTimer);
+  // ⚠️ 先问状态 —— 跟 scheduleFollowUp 一样。
+  //    她抓到的 bug：说了睡了，过一会儿又冒出来一句。
+  //    这里以前只查心情，不查他睡没睡。（测试直接抓出来了：睡着时 40/40 次都还安排。）
+  if (!canHeSpeak()) return;
   const mood = currentMood();
   if (MOODS[mood]?.maxTurns <= 1) return;        // 累/在忙：别再多话
   if (isShortAck(herText)) return;               // 她只回"好"：别追
@@ -3187,10 +3457,10 @@ function scheduleFollowUpBurst(herText) {
 
   const wait = 18000 + Math.random() * 32000;    // 安静 18~50 秒
   burstTimer = setTimeout(async () => {
+    // ⚠️ 同样要先问状态 —— 他可能已经说了睡了
+    if (!canHeSpeak()) return;
     const l = S.history[S.history.length - 1];
     if (!l || l.r !== 'him') return;             // 她已经说话了，就不补了
-    if (busy) return;
-    // 别在他刚才那一口气还没落地的时候插进来
     if (Date.now() - (S._lastBurstStart || 0) < 15000) return;
     try {
       // 把你俩刚才那一轮原文递给他 —— 不然他只能凭空想一句，就驴唇不对马嘴
@@ -3253,6 +3523,8 @@ async function send(text, opts) {
     S._herDistress = /难受|难过|哭|委屈|崩溃|烦|慌|焦虑|孤单|孤独|想你|不理我|不爱我|害怕|撑不住|累死|救命/.test(text);
     // 她这一句是"要保证/自责/说不清/做成了一件事"吗 —— 这一轮的应对方式
     S._care = careMode(text);
+    // 她说的到底是谁（她自己 / 他 / 分不清）—— 他最容易搞混的地方
+    S._subject = subjectNote(text);
     // 她在说他"这句话不对/接不上"吗 —— 这是他第二条学习路径。
     // 以前他只在自己"主动写标记"时才学，所以她指出他某句话不对，他学不到。
     const gap = herReplyComplaint(text);
@@ -3266,6 +3538,22 @@ async function send(text, opts) {
     // 顺序要紧：先在"还没改"的时候记一笔她给的暖，再改心情。
     noteMoodReward();
     S._moodMoved = reactToHer(text);
+  }
+
+  // ---- 他睡着了：说了睡就真的没动静 ----
+  // （她指出过：真人说了睡了就不会再秒回。这不违背"一定会回来"——回来是明早。）
+  if (text && isAsleep() && !(opts && opts.silent)) {
+    S.sleepMissed = (S.sleepMissed || 0) + 1;
+    save();
+    await pushToServer();
+    refreshHeader();
+    if (S._herDistress) {
+      // 她半夜很难受 —— 他醒一下，就一句，然后接着睡
+      sysNote('（他睡着了。你这么难受，他迷迷糊糊回你一句。）');
+    } else {
+      sysNote('（他睡了。你这句话他明早会看到 —— 他起来一定回你。）');
+    }
+    return;
   }
 
   // ---- 他已经说了"我出去一趟，一小时"，现在真的离开了 ----
@@ -3420,21 +3708,63 @@ function bindUI() {
   // 单独测一下联网小助手通不通
   $('#test-web') && $('#test-web').addEventListener('click', async () => {
     const box = $('#testResult');
-    const base = $('#webUrl').value.trim().replace(/\/+$/, '');
+    let base = $('#webUrl').value.trim().replace(/\/+$/, '');
     if (!base) { box.textContent = '先在上面那栏填上小助手的网址。'; return; }
-    box.textContent = '正在问小助手…';
+
+    // 几个一眼能看出的错，先说清楚，别让它一直转
+    if (!/^https?:\/\//i.test(base)) {
+      box.textContent = '❌ 网址要带 https:// 开头。你填的是「' + base + '」。';
+      return;
+    }
+    if (base.startsWith('http://')) {
+      box.textContent = '❌ 你填的是 http:// 开头 —— 这样手机上会被拦掉（打不开）。'
+        + '把 http:// 改成 https:// 再试。Cloudflare 给的一定是 https。';
+      return;
+    }
+    if (/localhost|127\.0\.0\.1/.test(base)) {
+      box.textContent = '❌ 这是本机地址，手机上连不到。要用 Cloudflare 给你的那个 workers.dev 网址。';
+      return;
+    }
+
+    box.textContent = '正在问小助手…（最多等 20 秒）';
+    // 关键：一定要有超时。以前没有超时，连不通就永远停在"正在问…"，
+    // 分不清是成功还是在等 —— 她就是这么被卡住的。
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 20000);
     try {
-      const r = await fetch(base + '/?q=' + encodeURIComponent('今天有什么热点新闻'));
-      const d = await r.json();
+      const r = await fetch(base + '/?q=' + encodeURIComponent('今天有什么热点新闻'), { signal: ctl.signal });
+      clearTimeout(timer);
+      if (!r.ok) {
+        box.textContent = '❌ 小助手回了个错误：' + r.status + ' ' + r.statusText
+          + '（网址对不对？Worker 部署成功了吗？）';
+        return;
+      }
+      let d;
+      try { d = await r.json(); } catch {
+        box.textContent = '❌ 小助手回的不是我能读的内容。'
+          + '多半是网址填错了（比如填成了别的网页）。';
+        return;
+      }
       if (d && d.ok) {
         const one = d.summary || (d.results && d.results[0] && d.results[0].title) || '（有结果，没摘要）';
         box.textContent = '✅ 通了。他刚才看到的是：' + String(one).slice(0, 160);
+      } else if (d && d.error && /TAVILY_KEY/.test(d.error)) {
+        box.textContent = '⚠️ 小助手在，但还没配搜索的 Key。'
+          + '去 Cloudflare 那个 Worker 的 Settings → 变量，加一个 TAVILY_KEY。';
       } else {
         box.textContent = '⚠️ 小助手回了，但没查到：' + ((d && d.error) || '不知道原因');
       }
     } catch (e) {
-      box.textContent = '❌ 连不上：' + (e.message || e)
-        + '（检查网址对不对、Worker 有没有部署成功）';
+      clearTimeout(timer);
+      const msg = (e && e.name === 'AbortError')
+        ? '等了 20 秒没回应'
+        : (e && e.message) || String(e);
+      box.textContent = '❌ 连不上：' + msg + '\n\n'
+        + '挨个看：\n'
+        + '1. 网址是 https:// 开头吗（不是 http）\n'
+        + '2. 是不是 Cloudflare 给你的那个 workers.dev 网址\n'
+        + '3. Worker 部署成功了吗（去 Cloudflare 看它状态）\n'
+        + '4. 手机能上网吗';
     }
   });
 
@@ -3540,10 +3870,33 @@ function bindUI() {
     try { d = JSON.parse(raw); } catch { alert('这段备份码读不出来，看看是不是复制少了。'); return; }
     if (!d || !Array.isArray(d.history)) { alert('这段备份码不像是我这边的备份。'); return; }
     if (!confirm('用这个备份覆盖现在的记录和记忆？（现在这边的内容会没掉）')) return;
-    localStorage.setItem(LS, JSON.stringify(d));
-    S = load(); renderAll(); fillSettings(); fillMem();
+
+    // 存不存得住，要先确认 —— 以前这一步会"看着成功"，其实根本没存进去，
+    // 一刷新就空，让人以为是恢复失败了。
+    try {
+      localStorage.setItem(LS, JSON.stringify(d));
+    } catch (e) {
+      alert('存不进去：' + (e && e.message ? e.message : e) + '\n\n'
+        + '多半是 Safari 开在无痕浏览，或者网站数据被禁了。\n'
+        + '按下面说的弄好，再粘一次。');
+      storageOK = false;
+      storageWarn();
+      return;
+    }
+    const back = localStorage.getItem(LS);
+    S = load();
+    renderAll(); fillSettings(); fillMem();
     $('#backupBox').style.display = 'none';
-    sysNote('恢复好了。' + (S.history.length ? '你们之前说过的话 ' + S.history.length + ' 条，都在。' : ''));
+
+    // 存进去了吗？读回来对不上就是没存住
+    const savedOk = !!back && back.length > 200;
+    if (!savedOk) {
+      storageWarn();
+      return;
+    }
+    sysNote('恢复好了。'
+      + (S.history.length ? '你们之前说过的话 ' + S.history.length + ' 条，都在。' : '（这个备份里没有聊天记录）')
+      + (S.longMemory ? ' 长期记忆也在。' : ''));
   });
 
   $('#importFile').addEventListener('change', async (e) => {
@@ -3699,6 +4052,9 @@ async function maybeCatchUp() {
   // 他在忙 —— 那就等忙完（闹钟已经定好了），别在这时候插话
   if (isAway()) { scheduleBusyReturn(); return; }
 
+  // 他睡着了 —— 别在这时候冒出来（她抓过这个 bug：说了睡了又问"你睡了吗"）
+  if (isAsleep()) return;
+
   // 忙完了但没来得及说（手机锁屏、页面关掉了）→ 先补上"我回来了"
   // 这是"他一定会回来"的兜底：不靠定时器，靠每次打开时检查。
   if ((S.busyUntil || 0) && S.busyUntil < Date.now()) {
@@ -3725,6 +4081,7 @@ async function boot() {
   // 在微信里打开的话，先拦一道（不然会以为记忆丢了）
   if (isWeChatBrowser()) { wechatWarn(); return; }
   applyFontScale();                    // 先套上文字大小，别等渲染完再跳一下
+  checkStorage();                      // 手机存不存得住东西 —— 存不住要马上告诉她
   $('#hisNameLabel').textContent = S.hisName;
   applyUrlSetup();
   bindUI();
@@ -3737,7 +4094,14 @@ async function boot() {
   }
 
   renderAll();
-  if (!S.history.length && !S.cfg.apiKey) {
+  // 存不住东西 —— 先把原因告诉她，别让她一直白忙
+  if (!storageOK) {
+    storageWarn();
+  } else if (S.asleepAt && new Date().getHours() >= 6 && new Date().getHours() < 12) {
+    // 天亮了，他该醒了 —— 把夜里她说的接上（这条要在 isAsleep 之前判断，
+    // 因为 isAsleep 一到白天就会自己清掉标记）
+    setTimeout(() => { wakeUp(); }, 900);
+  } else if (!S.history.length && !S.cfg.apiKey) {
     sysNote('第一次用：点右上角 ⚙︎ → 连接，把 API Key 填进去。填一次就够了。');
   } else {
     setTimeout(() => { maybeCatchUp(); }, 700);
