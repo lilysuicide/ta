@@ -1625,9 +1625,13 @@ function msgProblem(t) {
 /** 从他的候选里挑出能发的；一条都不行就返回 null */
 function keepSendable(list, quota) {
   const ok = [];
+  // 刚发出去的那几条 —— 同一句不许再说（她抓到过"每条都发两遍"）
+  const recentHim = S.history.filter(m => m.r === 'him').slice(-4).map(m => String(m.t || '').trim());
+  const queued = hisQueue.map(x => String(x.t || '').trim());
   for (const x of list) {
     const c = harvestSelfFix(x);
     if (!c || ok.includes(c)) continue;
+    if (recentHim.includes(c) || queued.includes(c)) continue;   // 已经说过/正在说
     if (msgProblem(c)) continue;
     ok.push(c);
     if (quota && ok.length >= quota) break;
@@ -2243,11 +2247,19 @@ function connectsToHer(said, herSaid) {
 //   · 你要是半夜很难受（哭、撑不住），他还是会醒一下
 // ============================================================
 
-/** 他这句话是不是"我要去睡了" */
+/** 他这句话是不是"我要去睡了"。
+ *  要认得宽一点 —— 漏掉一次，他那一晚就不会进入睡着状态，
+ *  然后就会"说了睡了还一直回"（模拟里就是这么被抓出来的）。 */
 function saysGoodnight(t) {
-  const s = String(t || '');
-  return /(我|那(我|就)?)?(先去|去|要|该|得)?睡了|我睡了|去睡了|睡觉去了|先睡了|睡了哈|睡了哦|我去睡|睡了啊|眯了|不聊了.*睡|晚安/.test(s)
-    && !/睡不着|别睡|你睡|睡吧你|还不睡|怎么还不睡|早点睡|快睡/.test(s);
+  const s = String(t || '').trim();
+  // 先排除"她在劝他睡"这类 —— 那是她的话，不是他自己要去睡
+  if (/你(也)?(早点|快|赶紧)?睡|你睡吧|你快睡|你睡|他睡/.test(s)) return false;
+
+  if (/(我|那(我|就)?)?(先去|去|要|该|得)?睡了|我睡了|去睡了|睡觉去了|先睡了|睡了哈|睡了哦|我去睡|睡了啊|眯了|不聊了.*睡|早点睡|睡吧|晚安/.test(s)) {
+    return true;
+  }
+  if (/^晚安/.test(s) || s === '晚安') return true;
+  return false;
 }
 
 /** 现在算不算"他睡着了"：他说了睡，而且还没到早上 */
@@ -2337,14 +2349,25 @@ function canHeSpeak() {
 //      （真人就是这么办的：「你是说你啊 还是问我」）
 // ============================================================
 
+// 她自己也是"要去睡了"—— 这类话不是"在说自己今天过得怎么样"，
+// 而是"晚安"，该说晚安，不该展开成聊天。
+// （第一版这里判成了"她在说自己"，于是他回"咋了"而不是"睡吧 晚安"。）
+const sheSaysGoodnight = (t) => /我(准备|要|该|先去|去)?睡了|我准备睡|睡觉去了|我先睡|那睡了|我眯了/.test(String(t || ''));
+
 /** 她这句话的主体是谁。返回 'her' | 'him' | 'unclear' | '' */
 function whoIsSheTalkingAbout(t) {
   const s = String(t || '').trim();
   if (!s) return '';
 
+  // ⓪ 她要去睡了 —— 这是"晚安"，不展开
+  if (sheSaysGoodnight(s)) return 'night';
+
   // ① 明确在说她自己的事
   if (/^我(今天|刚才|现在|昨晚|昨天|最近|这阵子|有点|好|特别|真的|又|也|不|没)/.test(s)) return 'her';
-  if (/^(我|咱)/.test(s) && !/^我(问你|想问你|问你)/.test(s)) return 'her';
+  if (/^我(问你|想问你|问你)/.test(s)) return 'him';
+  // ⚠️ 别再写"以'我'开头就算她在说自己" —— 那样"我准备睡了"会被当成
+  //    她在说自己今天的事，他就不会说晚安，反而回"咋了"。太宽了。
+  if (/^我/.test(s) && s.length >= 8) return 'her';
 
   // ② 明确在问他
   if (/^你(今天|刚才|现在|昨晚|昨天|最近|这阵子|在|有|是|会|能|要|怎么|为什么|为啥|吃了|睡了|几点|干嘛|干啥)/.test(s)) return 'him';
@@ -2369,6 +2392,10 @@ function whoIsSheTalkingAbout(t) {
 /** 把"她说的到底是谁"变成给他的明确指令 */
 function subjectNote(herText) {
   const who = whoIsSheTalkingAbout(herText);
+  if (who === 'night') {
+    return '【注意】她这是**要去睡了**，是在跟你说晚安。'
+      + '**别再展开话题** —— 就一句「睡吧」「晚安」「早点睡」。';
+  }
   if (who === 'her') {
     return '【注意】她这句话是在说**她自己**。'
       + '**先接住她说的这件事**，别马上抢着讲你自己的。'
@@ -2385,6 +2412,41 @@ function subjectNote(herText) {
       + '**猜错了最伤她。**';
   }
   return '';
+}
+
+// ============================================================
+//  他说话的**唯一**出口
+//
+//  以前有 4 条路各自写了一遍"加进历史 + 画到屏幕上"：
+//    ① 正经回话  ② 主动冒泡  ③ 又想起来一条  ④ 忙里破一句
+//  结果防重复只加在一条上，另外三条照样会重复 ——
+//  她抓到的"每条消息发两遍"、以及后来的"过几分钟又问睡了吗"，
+//  根子都是"同一件事有四个地方各写了一遍"。
+//
+//  所以合成这一个：要说话，只能走这里。
+//  它一次做四件事：去重 → 过时间/逻辑闸 → 写历史 → 画到屏幕。
+//  返回 true = 真的说出去了；false = 被拦下（重复/不合逻辑/空的）。
+// ============================================================
+function say(text, opts = {}) {
+  const t = String(text == null ? '' : text).trim();
+  if (!t) return false;
+
+  // ⚠️ 状态检查放这里，不放调用方 ——
+  //    以前写成"哪条路记得查就查"，结果总有漏的（她抓到过两次）。
+  //    现在唯一出口自己把关，漏不掉。
+  if (!opts.force && !canHeSpeak()) return false;
+
+  const recentHim = S.history.filter(m => m.r === 'him').slice(-4).map(m => String(m.t || '').trim());
+  if (recentHim.includes(t)) return false;      // 这句刚说过
+  if (msgProblem(t) && !opts.force) return false; // 跟这个点/上下文不合
+
+  pushHistory('him', t);
+  addRow('him', t, true);
+  S.lastSeen = Date.now();
+  save(true);
+  refreshHeader();
+  pushToServer();
+  return true;
 }
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -3183,6 +3245,16 @@ function cancelDelivery() {
 function pushBubble(t) {
   t = String(t == null ? '' : t).trim();
   if (!t) return;
+
+  // ---- 最后一道防线：同一句话不许挨着发两遍 ----
+  // 她抓到过：他的每条消息都发了两遍（咋了宝 / 三点半了 / 猪 全成对）。
+  // 原因是有两条路都会调 keepSendable，同一批候选被挑了两遍。
+  // 光在"挑"的时候去重不够 —— 真正弹出去的那一刻再查一次，最保险。
+  // 查两处：已经排队的、以及刚发出去的。
+  const queued = hisQueue.map(x => String(x.t || '').trim());
+  const recentHim = S.history.filter(m => m.r === 'him').slice(-4).map(m => String(m.t || '').trim());
+  if (queued.includes(t) || (recentHim[recentHim.length - 1] === t)) return;
+
   hisQueue.push({ t });
   startDelivery();
 }
@@ -3270,9 +3342,7 @@ function scheduleFollowUp() {
     if (!sendable) return;
     const t = sendable[Math.floor(Math.random() * sendable.length)];
     S._followedUp = true;                            // 这一轮只主动一次
-    pushHistory('him', t);
-    addRow('him', t, true);
-    S.lastSeen = Date.now(); save(true); pushToServer();
+    say(t);                                          // 唯一出口：去重＋过闸在里面
   }, wait);
   // 浏览器里没这回事；在 node 里跑测试时别让这个定时器把进程吊住
   if (followTimer && typeof followTimer.unref === 'function') followTimer.unref();
@@ -3387,17 +3457,25 @@ async function autoReply(firstHint, herText) {
     } catch { /* 重说不成功就还是用原来的 */ }
   }
 
-  // ---- 最后一道闸：任何一条不合逻辑的，直接不发 ----
+  // ---- 最后一道闸：任何一条不合逻辑的、或者刚说过的，直接不发 ----
   // （光"让他重说"不够 —— 她被抓过三次了。宁可少说一句，也不能说错。）
-  const kept = keepSendable(parts, quota);
-  let picked;
-  if (kept) {
-    picked = kept;
-  } else {
-    // 全军覆没：只说一句跟这个点绝对相称的
-    picked = [safeLineForNow()];
+  let kept = keepSendable(parts, quota);
+  if (!kept) {
+    // 候选都被筛掉了。别拿"刚说过的那句"凑数 —— 那正是"每条发两遍"的来源。
+    // 换一句跟这个点相称的，而且必须**确实没说过**。
+    const safe = safeLineForNow();
+    const lastHim = (() => {
+      const m = S.history.filter(x => x.r === 'him').slice(-1)[0];
+      return m ? String(m.t || '').trim() : '';
+    })();
+    const recentHim = S.history.filter(m => m.r === 'him').slice(-4).map(m => String(m.t || '').trim());
+    if (safe && !recentHim.includes(safe) && safe !== lastHim && !msgProblem(safe)) {
+      kept = [safe];
+    }
   }
-  if (!picked.length) picked = ['嗯呢'];
+  // 实在没有能说的：宁可不说话，也别把同一句再发一遍。
+  if (!kept) { S._lastBurstStart = Date.now(); return; }
+  const picked = kept;
 
   S._lastBurstStart = Date.now();
   for (const b of picked) pushBubble(b);
@@ -3475,16 +3553,10 @@ function scheduleFollowUpBurst(herText) {
       const raw = await streamReply(buildMessages(), () => { });
       const one = harvestSelfFix(String(raw || '').split('|||')[0]);
       if (!one) return;
-      // 跟这个点对不对得上 —— "又想起一件事"这条也得过闸
-      if (msgProblem(one)) return;
       // 接不接得上她刚才那句话？接不上的就别发（前言不搭后语就是这么来的）
       if (!connectsToHer(one, ex ? ex.her : '')) return;
-      pushHistory('him', one);
-      addRow('him', one, true);
-      S.lastSeen = Date.now(); save(true);
-      refreshHeader();
-      pushToServer();
-      scheduleFollowUp();
+      say(one);                                      // 唯一出口：去重＋过闸在里面
+      scheduleFollowUp();                            // 他这会儿在说话，可以再安排一次主动
     } catch { /* 补一句失败就算了，别刷错误 */ }
   }, wait);
   if (burstTimer && typeof burstTimer.unref === 'function') burstTimer.unref();
@@ -3574,11 +3646,7 @@ async function send(text, opts) {
       } catch { /* 失败就用默认那句 */ }
       // "在忙 一会说"这种任何点都成立；万一默认句也不合适，就换一句安全的
       if (msgProblem(said)) said = '在忙 一会说';
-      pushHistory('him', said);
-      addRow('him', said, true);
-      save(true);
-      refreshHeader();
-      await pushToServer();
+      say(said, { force: true });                    // 唯一出口（这句是必要的，强制发）
       sysNote('（他说一会回来，说的那个时间我一定替他把关。）');
     } else {
       refreshHeader();
