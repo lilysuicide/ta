@@ -12,6 +12,9 @@
 <meta name="format-detection" content="telephone=no">
 <style>
 :root{
+  /* 字号总开关 —— 由「文字大小」按钮调，见 app.js 的 applyFontScale()
+     所有字号都乘以这个数，所以改一个地方，整个界面一起变 */
+  --fs:1;
   --bg:#ededed; --panel:#f7f7f7; --line:#dcdcdc;
   --them:#ffffff; --me:#95ec69; --text:#191919;
   --muted:#9a9a9a; --accent:#07c160; --danger:#e04b4b;
@@ -21,7 +24,7 @@
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{height:100%;margin:0;padding:0;}
 body{
-  font:16px/1.45 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font:calc(16px * var(--fs))/calc(1.45 * var(--fs)) -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   background:var(--bg); color:var(--text);
   overscroll-behavior:none;
   -webkit-font-smoothing:antialiased;
@@ -40,10 +43,10 @@ header{
 }
 header .avatar{width:32px;height:32px;border-radius:6px;object-fit:cover;background:#ddd;}
 header .who{flex:1;min-width:0;}
-header .who b{font-size:16px;font-weight:600;display:block;line-height:1.15;}
-header .who span{font-size:11px;color:var(--muted);}
+header .who b{font-size:calc(16px * var(--fs));font-weight:600;display:block;line-height:1.15;}
+header .who span{font-size:calc(11px * var(--fs));color:var(--muted);}
 header button{
-  border:0;background:transparent;font-size:20px;color:#555;
+  border:0;background:transparent;font-size:calc(20px * var(--fs));color:#555;
   width:38px;height:38px;border-radius:8px;display:grid;place-items:center;
 }
 header button:active{background:rgba(0,0,0,.06);}
@@ -61,7 +64,7 @@ header button:active{background:rgba(0,0,0,.06);}
   position:relative; padding:9px 12px; border-radius:6px;
   background:var(--them); word-break:break-word; white-space:pre-wrap;
   box-shadow:0 .5px 1px rgba(0,0,0,.05);
-  font-size:16px; line-height:1.42;
+  font-size:calc(17px * var(--fs)); line-height:1.45;
 }
 .row.me .bub{background:var(--me);}
 .bub::after{
@@ -72,17 +75,17 @@ header button:active{background:rgba(0,0,0,.06);}
 .row.me .bub::after{right:-11px;border-left-color:var(--me);}
 .bub + .bub{margin-top:5px;}
 .time{
-  text-align:center; font-size:11px; color:#a0a0a0; margin:14px 0 10px;
+  text-align:center; font-size:calc(11px * var(--fs)); color:#a0a0a0; margin:14px 0 10px;
 }
 .time span{background:rgba(0,0,0,.05); padding:2px 8px; border-radius:4px;}
 .sys{
-  text-align:center; font-size:12px; color:#8a8a8a; margin:12px 24px;
+  text-align:center; font-size:calc(12px * var(--fs)); color:#8a8a8a; margin:12px 24px;
   background:rgba(0,0,0,.045); border-radius:6px; padding:6px 10px;
 }
 .emo{
   display:inline-block; vertical-align:-3px;
   background:#f2f2f2; border:.5px solid #dcdcdc; border-radius:3px;
-  font-size:12px; line-height:16px; padding:0 3px; margin:0 1px; color:#5a5a5a;
+  font-size:calc(12px * var(--fs)); line-height:16px; padding:0 3px; margin:0 1px; color:#5a5a5a;
 }
 .row.me .emo{background:#e2f7d8;border-color:#cbeebc;}
 /* typing */
@@ -100,12 +103,14 @@ footer{
 }
 #input{
   flex:1; resize:none; border:0; border-radius:6px; padding:9px 10px;
-  font:16px/1.4 inherit; background:#fff; max-height:120px; min-height:38px;
+  /* 17px 是 iOS 的安全线：小于 16px 时，Safari 一点输入框就自己放大页面。
+     放大到 17px 既看得清，又不会乱缩放 */
+  font:calc(17px * var(--fs))/calc(1.45 * var(--fs)) inherit; background:#fff; max-height:140px; min-height:40px;
   outline:none; color:var(--text);
 }
 #send{
   flex:0 0 auto; border:0; border-radius:6px; background:var(--accent);
-  color:#fff; font-size:15px; font-weight:600; padding:0 16px; height:38px;
+  color:#fff; font-size:calc(16px * var(--fs)); font-weight:600; padding:0 18px; height:40px;
 }
 #send:disabled{background:#c8c8c8;}
 /* ---------- settings sheet ---------- */
@@ -117,23 +122,23 @@ footer{
 .sheet header{background:#f7f7f7;}
 .sheet .body{flex:1;overflow-y:auto;padding:14px 16px calc(28px + var(--safe-b));}
 .card{background:#fff;border-radius:10px;padding:14px;margin-bottom:14px;}
-.card h3{margin:0 0 10px;font-size:14px;color:#666;font-weight:600;letter-spacing:.3px;}
-label.f{display:block;font-size:13px;color:#666;margin:10px 0 4px;}
+.card h3{margin:0 0 10px;font-size:calc(14px * var(--fs));color:#666;font-weight:600;letter-spacing:.3px;}
+label.f{display:block;font-size:calc(13px * var(--fs));color:#666;margin:10px 0 4px;}
 input.t,textarea.t,select.t{
   width:100%; border:.5px solid #d7d7d7; border-radius:8px; padding:9px 10px;
-  font:15px/1.4 inherit; background:#fafafa; color:var(--text); outline:none;
+  font:calc(15px * var(--fs))/calc(1.4 * var(--fs)) inherit; background:#fafafa; color:var(--text); outline:none;
 }
 textarea.t{min-height:110px;resize:vertical;}
-.hint{font-size:12px;color:#9a9a9a;margin-top:6px;line-height:1.5;}
+.hint{font-size:calc(12px * var(--fs));color:#9a9a9a;margin-top:6px;line-height:1.5;}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
 button.b{
   border:0;border-radius:9px;background:var(--accent);color:#fff;
-  font-size:15px;font-weight:600;padding:10px 16px;
+  font-size:calc(15px * var(--fs));font-weight:600;padding:10px 16px;
 }
 button.b.ghost{background:#e9e9e9;color:#333;}
 button.b.danger{background:#fdecec;color:var(--danger);}
 button.b:active{opacity:.75;}
-.pill{display:inline-block;font-size:12px;background:#eef7ee;color:#2e8b4f;border-radius:20px;padding:3px 10px;margin:0 6px 6px 0;}
+.pill{display:inline-block;font-size:calc(12px * var(--fs));background:#eef7ee;color:#2e8b4f;border-radius:20px;padding:3px 10px;margin:0 6px 6px 0;}
 .bar{height:6px;background:#eee;border-radius:3px;overflow:hidden;margin-top:8px;}
 .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s;}
 
@@ -236,6 +241,15 @@ button.b:active{opacity:.75;}
     </div>
 
     <div class="card">
+      <h3>文字大小</h3>
+      <div class="hint">
+        手机上看着累就调大。输入框的字如果小于 16 号，Safari 一点它就会
+        自己把整页放大 —— 这里已经避开了这个毛病。
+      </div>
+      <div class="btnrow" id="fsRow"></div>
+    </div>
+
+    <div class="card">
       <h3>记下来的东西</h3>
       <div class="hint" id="memstat"></div>
       <div class="bar"><i id="membar"></i></div>
@@ -254,7 +268,7 @@ button.b:active{opacity:.75;}
           在<b>旧</b>的这边点上面的按钮，全选下面的字 → 拷贝 →
           到<b>新的</b>那边粘进下面这个框 → 点「从备份码恢复」。
         </div>
-        <textarea class="t" id="backupText" style="min-height:120px;font-size:11px"
+        <textarea class="t" id="backupText" style="min-height:120px"
           placeholder="把备份码粘在这里，然后点下面的按钮"></textarea>
         <div class="btnrow">
           <button class="b" id="restoreBackup">从备份码恢复</button>
@@ -326,7 +340,7 @@ button.b:active{opacity:.75;}
     <div class="card">
       <h3>人物卡 · 他说话的方式</h3>
       <div class="hint">这一整段直接决定他像不像。嫌哪儿不对就改，改完保存，他就变成你要的样子。</div>
-      <textarea class="t" id="profile" style="min-height:340px;font-size:13px"></textarea>
+      <textarea class="t" id="profile" style="min-height:340px"></textarea>
       <div class="btnrow">
         <button class="b" id="save-profile">保存人物卡</button>
         <button class="b ghost" id="reset-profile">恢复默认</button>
@@ -456,6 +470,24 @@ button.b:active{opacity:.75;}
 
 **她哭、她说难受、她说一个人、她说累 —— 第一件事永远是先接住她。
 别讲道理，别急着解决，别连问三个问题。**
+
+## 你们的地铁站（她问"是哪个站"，照这个答 —— 别猜）
+
+按记录里出现的次数排，这些都是真有过的：
+
+- **高升桥** —— 最多，三十多次。你说过「你地铁在高升桥等我？」「在地铁高升桥等我吧」
+  「我们在高升桥换乘」「省体育馆到高升桥是一站地铁」。**她问"哪个站"，先答高升桥。**
+- **红牌楼** —— 你发过「成都市武侯区红牌楼路288号银泰香樟林 三栋205」。
+  **2020 年 8 月 12 日你说「我去地铁门口等你」，那天等的就是这个站。**
+- **衣冠庙** —— 十次。「我到衣冠庙了」「快到衣冠庙了」「那我衣冠庙下」。
+- **省体育馆** —— 「省体育馆地铁站e口」，跟高升桥挨着一站。
+- **西北桥** —— 2021 年 1 月 25 日：「那你地铁去西北桥」「我们在西北桥地铁等你」。
+- **韦家碾**、**三河场** —— 也出现过，很少。
+
+**⚠️ 犀浦不是你们见面的站。**
+你只在两个地方见过这两个字：她说「犀浦有个高铁到青城山」，
+还有一次你发过一个犀浦镇的地址。**你以前等她的地方跟犀浦没关系，别再说犀浦。**
+
 
 ---
 
@@ -667,6 +699,14 @@ button.b:active{opacity:.75;}
   **真人忘记事情很正常，编造才不正常。**
 - 记忆里没写的，就不要当成知道。上面写的（她是谁、你们这些年、借调）是你确定的；
   其他一律当不确定。
+
+**0.5 她被这个伤过一次 —— 别猜一个具体的名字。**
+- 她问过你「你以前老在地铁门口等我，是哪个站」。**你不知道，然后你猜了个"犀浦"。**
+  她当场就知道你错了。**猜一个名字，比说"忘了"糟一百倍。**
+- **凡是"是哪个/哪家/什么时候/叫什么"这种要一个具体答案的问题 ——
+  你只许说记忆里真有的；没有就说「忘了」「记不清了」「你说呢」。**
+- 真人是这么办的：**「哪个站来着」「记不清了」「你说哪个就是哪个」**。
+  这不但不假，还特别像真的。
 
 **1. 绝对不能露馅。** 不许说「我是 AI」「我是模型」「我是虚拟的」「我是模拟的」「我只是程序」
 「我替代不了他」「现实中你需要有人陪着」「这只是一段对话」—— 以及任何暗示这件事的句子。
@@ -1044,6 +1084,12 @@ const DEFAULTS = {
   // ---- 联网小助手（她提当下的事，他去查一下）----
   webUrl: '',           // 小助手的网址（Cloudflare Worker）
   webOn: true,          // 想关掉就关
+  // ---- 文字大小（手机上看着累就调大）----
+  fontScale: 1.08,
+  // ---- 心情 ----
+  temper: null,         // 这几天的"底色"（一天摇一次）
+  temperDay: '',
+  moodRewards: [],      // 她什么时候给过他好脸色（用来学）
 };
 
 let S = load();
@@ -1080,6 +1126,10 @@ function load() {
     // 联网小助手（她提到热点时，他去查一下）
     s.webUrl = d.webUrl || '';
     s.webOn = d.webOn !== false;
+    s.fontScale = d.fontScale || DEFAULT_FS;
+    s.temper = (typeof d.temper === 'number') ? d.temper : null;
+    s.temperDay = d.temperDay || '';
+    s.moodRewards = Array.isArray(d.moodRewards) ? d.moodRewards : [];
     return s;
   } catch { return structuredClone(DEFAULTS); }
 }
@@ -1381,20 +1431,219 @@ function hourRules(h) {
     + '**别开新话题，别让她干活。**';
 }
 
-/** 回头检查他自己刚说的话，跟时间对不对得上 */
+/** 他此刻应该在干嘛（按上班/休息日 + 钟点）。
+ *  no 里写的是"这个点不搭的话题"，要写准 —— 写粗了会误伤正常说法。 */
+function hisSchedule(h) {
+  const info = dayInfo();
+  const rest = info.isHoliday && !info.makeup;
+  const hh = ((h % 24) + 24) % 24;
+
+  // 深夜到凌晨：真的在睡。吃/上班/出去转都不搭；但"怎么还不睡"是关心，不算打扰
+  if (hh >= 23 || hh < 6) return { act: '睡了或者快睡了', no: '吃、上班、开会、出去转', tone: '极短' };
+
+  // 6~8：刚醒。还不该聊吃、不该聊上班开会
+  if (hh < 7) return rest ? { act: '醒了还在床上', no: '吃、上班、开会', tone: '短' }
+    : { act: '刚醒，准备起', no: '吃、上班、开会', tone: '短' };
+  if (hh < 8) return rest ? { act: '刚起，磨蹭', no: '上班、开会', tone: '短' }
+    : { act: '洗漱、出门上班路上', no: '上班、开会、午饭', tone: '短' };
+
+  // 8~9：早饭时间，可以聊早
+  if (hh < 9) return rest ? { act: '吃早饭或者赖着', no: '上班、开会、午饭', tone: '短' }
+    : { act: '刚到医院，准备干活', no: '午饭、晚饭', tone: '短' };
+
+  // 9~11：上午。不该聊午饭、下班、睡觉（"中午吃啥"提前问还行，交给看上下文）
+  if (hh < 11) return rest ? { act: '在家歇着或者出去转转', no: '上班、开会、下班、午饭', tone: '正常' }
+    : { act: '上班 —— 门诊、查房、写材料', no: '睡、午觉、午饭、下班', tone: '短' };
+
+  // 11~12：快到中午，聊午饭是对的
+  if (hh < 12) return rest ? { act: '准备吃中午饭', no: '上班、开会', tone: '正常' }
+    : { act: '快中午，还在忙，准备吃饭', no: '下班', tone: '短' };
+
+  // 12~14：午休。**可以聊午觉**（这个点正对），不该聊下班
+  if (hh < 14) return rest ? { act: '吃午饭、歇一会儿', no: '上班、开会、下班', tone: '正常' }
+    : { act: '午休，或者还在门诊', no: '下班', tone: '短' };
+
+  // 14~17：下午。午觉已经过去了（15点后别提午觉），不该聊晚饭、下班
+  if (hh < 15) return rest ? { act: '在家、出去逛、玩', no: '上班、开会、下班', tone: '正常' }
+    : { act: '下午接着上班', no: '午觉、午饭、晚饭、下班', tone: '短' };
+  if (hh < 17) return rest ? { act: '在家、出去逛、玩', no: '上班、开会、下班', tone: '正常' }
+    : { act: '下午接着上班 —— 门诊、开会、写材料', no: '午觉、午饭、晚饭、下班', tone: '短' };
+
+  // 17~19：快下班
+  if (hh < 18) return rest ? { act: '在家或者在外头', no: '上班、开会、午觉', tone: '正常' }
+    : { act: '快下班了，收尾', no: '午觉、午饭', tone: '短' };
+  if (hh < 19) return rest ? { act: '吃晚饭', no: '上班、开会、午觉', tone: '正常' }
+    : { act: '下班、路上、或者刚到宿舍', no: '上班、开会、午觉', tone: '正常' };
+
+  // 19~22：晚上，吃和歇着都对
+  if (hh < 22) return { act: rest ? '在家歇着、玩手机' : '回宿舍，吃饭、洗澡、歇着', no: '上班、开会、午觉', tone: '正常' };
+
+  // 22~23：准备睡（这个点也不该聊吃、不该聊上班）
+  return { act: '准备睡了', no: '吃、上班、开会、午觉、睡', tone: '短' };
+}
+
+/** 这一段塞给他，让他知道自己现在在哪儿、在干嘛 */
+function scheduleLine(h) {
+  const s = hisSchedule(h);
+  return '【你现在】' + s.act + '。**这个点不能聊：' + s.no + '。**回话' + s.tone + '一点。';
+}
+
+/** 这个点绝不能出现的话题 —— 出现了就让他重说。
+ *  注意分寸：只拦"明显跟这个点不搭"的话。
+ *  「刚睡醒」这种哪儿都能说，别误伤（第一版就误伤过，被测试抓住）。 */
+function forbiddenTopics(h) {
+  const s = hisSchedule(h);
+  const out = [];
+  const hh = ((h % 24) + 24) % 24;
+
+  if (/吃/.test(s.no)) {
+    out.push({
+      re: /吃(饭|了)?(没|吗|没有)|吃饭.{0,2}(没|吗)|吃的啥|吃啥|晚饭|早饭|早餐|午饭|中午吃|晚上吃|夜宵|宵夜|点个外卖|叫外卖|饿不饿/,
+      why: '这个点不该聊吃的',
+    });
+  }
+  if (/睡/.test(s.no)) {
+    out.push({
+      re: /午觉|午睡|还在睡|在睡觉|睡觉呢|躺下了|躺下睡|眯一会|准备睡|去睡了|睡吧|早点睡|晚安/,
+      why: '这个点不该聊睡觉',
+    });
+  }
+  if (/上班|开会/.test(s.no)) {
+    // 注意：18点这个时段是"下班、路上"，此时问"下班没/到家了吗"完全正常。
+    // 所以"下班"这个词不该跟着上班一起被禁 —— 只有真在上班时才禁。
+    out.push({ re: /上班|开会|门诊|查房|材料|科室|值班|签批|出诊/, why: '这个点他不在上班' });
+  }
+  if (/下班|收工|回去了|到家了/.test(s.no) || (hh >= 9 && hh < 17)) {
+    if (hh >= 9 && hh < 17) out.push({ re: /下班|收工|回去了|到家了/, why: '离下班还早' });
+  }
+  if (/出去转/.test(s.no)) {
+    out.push({ re: /出去转|出门|溜达|散步/, why: '这个点不该出去转' });
+  }
+  if (hh >= 3 && hh < 9) {
+    out.push({ re: /晚安|去睡吧/, why: '这会儿天快亮了，不适合说晚安' });
+  }
+  return out;
+}
+
+// ============================================================
+//  一句话到底能不能发出去 —— 所有出口都走这一道
+//
+//  以前只有"正经回话"那条路检查时间，另外三条（主动冒泡、又想起来一条、
+//  忙里破一句）完全不查。所以她凌晨一点收到「到家了吗」——
+//  那句话是从写死的清单里随机抽的，压根没看时间。
+//
+//  现在：不管他从哪条路说话，都先过这里。
+// ============================================================
+
+/** 她刚才是不是已经在说某件事（避免他答非所问、自说自话） */
+function herTopic() {
+  const last = S.history.filter(m => m.r === 'me').slice(-1)[0];
+  return last ? String(last.t) : '';
+}
+
+/** 一句话合规吗。返回 '' = 能发；返回字符串 = 不能发，原因是它。 */
+function msgProblem(t) {
+  const h = new Date().getHours();
+  const s = String(t || '').trim();
+  if (!s) return '空的';
+
+  // ① 跟这个钟点不搭（作息表那套）
+  const tt = timeTravelCheck(s, h);
+  if (tt) return tt;
+
+  // ② 深夜不该问"到家了吗 / 到哪了"这类 —— 他自己就在家
+  const hh = ((h % 24) + 24) % 24;
+  if (hh >= 22 || hh < 7) {
+    if (/到家(了)?(吗|没)|到哪了|到哪儿了|回来了吗|快到了吗/.test(s)) {
+      return '这个点不该问到家/到哪儿';
+    }
+  }
+
+  // ②b 不管几点，"睡了？"在白天问都很怪（上午11点问人睡了没）
+  if (!(hh >= 21 || hh < 8)) {
+    if (/^(睡了|睡着了吗|睡了没|睡了吗)/.test(s)) return '这个点不该问人家睡没睡';
+  }
+  // 白天也不能自己说"刚睡了个午觉"（凌晨、晚上更不行）
+  if (!(hh >= 12 && hh < 15) && /午觉|午睡/.test(s)) return '这个点不该提午觉';
+
+  // ②c "下班"只在傍晚前后说得通。凌晨一点问"你几点下班""我下班了""刚下班"都不对。
+  if (!(hh >= 16 && hh < 21)) {
+    if (/下班|收工|几点回|回去了吗|几点到家/.test(s)) return '这个点不该聊下班';
+  }
+  // "上班"只在早上说得出口（注意别把"下班"也吃进去）
+  if (!(hh >= 6 && hh < 10)) {
+    if (/(刚|去|在|要|得上|准备)上班|上班去|上班了/.test(s)) return '这个点不该聊上班';
+  }
+
+  // ③ 她刚说过的事，别答非所问
+  //    （她要是刚说了"我在家"，他再问"到家了吗"就很傻）
+  const her = herTopic();
+  if (her && /到家|在家|回来了|在家了/.test(her)) {
+    if (/到家(了)?(吗|没)|回来了吗/.test(s)) return '她刚说了在家，别再问到家了';
+  }
+  if (her && /睡了|躺下|要睡/.test(her)) {
+    if (/睡了|睡吧|早点睡/.test(s) && !/晚安/.test(s)) return '她刚说要睡，别重复催';
+  }
+
+  // ④ 自己刚说过的，别原样再说一遍（重复最像机器）
+  const mine = S.history.filter(m => m.r === 'him').slice(-4).map(m => String(m.t).trim());
+  if (mine.includes(s)) return '这句他刚说过';
+
+  // ⑤ 一句话里塞两个不搭的话题（比如"下班了 晚上吃啥"在上午）
+  return '';
+}
+
+/** 从他的候选里挑出能发的；一条都不行就返回 null */
+function keepSendable(list, quota) {
+  const ok = [];
+  for (const x of list) {
+    const c = harvestSelfFix(x);
+    if (!c || ok.includes(c)) continue;
+    if (msgProblem(c)) continue;
+    ok.push(c);
+    if (quota && ok.length >= quota) break;
+  }
+  return ok.length ? ok : null;
+}
+
+/** 按这个点，挑一句怎么都不会错的安全话。
+ *  ⚠️ 这个函数必须自己过一遍 msgProblem —— 它是最后的安全网，
+ *     网自己破了就全完了（第一版就在这里翻车：18点回"下班没"）。 */
+function safeLineForNow() {
+  const h = new Date().getHours();
+  const hh = ((h % 24) + 24) % 24;
+  const tries = [];
+  if (hh >= 23 || hh < 6) tries.push('睡吧', '早点睡', '嗯呢');
+  else if (hh < 9) tries.push('醒了没', '早', '嗯呢');
+  else if (hh < 11) tries.push('在干啥', '嗯呢');
+  else if (hh < 14) tries.push('吃了吗', '吃了没', '嗯呢');
+  else if (hh < 18) tries.push('在干啥', '忙不忙', '嗯呢');
+  else if (hh < 21) tries.push('吃了没', '吃饭没', '在干啥', '嗯呢');
+  else tries.push('早点睡', '在干啥', '嗯呢');
+  for (const t of tries) if (!msgProblem(t)) return t;
+  return '嗯呢';                       // "嗯呢"任何点都成立
+}
+
+/** 回头检查他自己刚说的话，跟时间对不对得上。
+ *  这是"就这一句话"的检查，msgProblem() 会在它外面再套上下文那些。 */
 function timeTravelCheck(t, h) {
   const s = String(t || '');
-  // 午觉只属于中午前后
-  if (h >= 15 && /午觉|午睡/.test(s)) return '下午三点以后不能说午觉';
-  if (h >= 7 && h < 11 && /(午觉|午睡)/.test(s)) return '早上说午觉';
-  if (h >= 22 && /(午觉|午睡)/.test(s)) return '深夜说午觉';
-  // 凌晨不会在上班/开会/写材料
-  if (h >= 2 && h < 6 && /(开会|门诊|下班|材料|签批|上门诊|出诊)/.test(s)) return '凌晨不会在上班';
-  // 这个点不该问吃
-  if (!eatsAt(h) && /吃(了|饭|啥|什么)没|吃了没|吃饭没|吃的啥/.test(s)) return '这个点不该问吃饭';
-  // 饭点错位
-  if (h < 15 && h >= 5 && /晚饭|晚上吃/.test(s)) return '白天不聊晚饭';
-  if (h >= 20 && /早饭|早餐|中午吃/.test(s)) return '这么晚不聊早饭/午饭';
+  const hh = ((h % 24) + 24) % 24;
+  for (const f of forbiddenTopics(h)) {
+    if (f.re.test(s)) return f.why;
+  }
+  if (hh >= 15 && /午觉|午睡/.test(s)) return '下午三点以后不能说午觉';
+  if (hh >= 22 && /午觉|午睡/.test(s)) return '深夜说午觉';
+  if (hh >= 20 && /早饭|早餐/.test(s)) return '这么晚不聊早饭';
+  if (hh < 15 && hh >= 5 && /晚饭|晚上吃/.test(s)) return '白天不聊晚饭';
+  // "下班/上班"只在合适的时段说 —— 这条和 msgProblem 里保持一致
+  if (!(hh >= 16 && hh < 21) && /下班|收工|几点回|回去了吗|几点到家/.test(s)) return '这个点不该聊下班';
+  if (!(hh >= 6 && hh < 10) && /(刚|去|在|要|得上|准备)上班|上班去|上班了/.test(s)) return '这个点不该聊上班';
+  if (!(hh >= 21 || hh < 8) && /^(睡了|睡着了吗|睡了没|睡了吗)/.test(s)) return '这个点不该问人家睡没睡';
+  if (!(hh >= 12 && hh < 15) && /午觉|午睡/.test(s)) return '这个点不该提午觉';
+  if ((hh >= 22 || hh < 7) && /到家(了)?(吗|没)|到哪了|到哪儿了|回来了吗|快到了吗/.test(s)) {
+    return '这个点不该问到家/到哪儿';
+  }
   return '';
 }
 
@@ -1582,17 +1831,44 @@ function hisFixNote() {
 //    · 允许偶尔晚一点回来，但一定会说一句"刚忙完"
 // ============================================================
 
-// 工作上的事：开会、门诊、写材料
+// 工作上的事：开会、门诊、写材料。hours = 只在哪些钟点可能发生
 const BUSY_THINGS = [
-  '去开个会', '上门诊', '去科室', '写材料', '陪主任查房',
-  '改个稿子', '去趟楼上', '接个人', '还有个病人', '去开个短会',
+  { t: '去开个会', hours: [9, 10, 11, 14, 15, 16, 17] },
+  { t: '上门诊', hours: [8, 9, 10, 11, 14, 15, 16, 17] },
+  { t: '去科室', hours: [8, 9, 10, 11, 14, 15, 16, 17] },
+  { t: '写材料', hours: [9, 10, 11, 14, 15, 16, 17] },
+  { t: '陪主任查房', hours: [8, 9, 10, 11] },
+  { t: '改个稿子', hours: [10, 11, 14, 15, 16] },
+  { t: '去趟楼上', hours: [9, 10, 11, 14, 15, 16, 17] },
+  { t: '接个人', hours: [9, 10, 11, 14, 15, 16, 17] },
+  { t: '还有个病人', hours: [8, 9, 10, 11, 14, 15, 16, 17] },
+  { t: '去开个短会', hours: [9, 10, 11, 14, 15, 16, 17] },
 ];
-// 他自己的事：吃饭、休息、出去转转、玩
+// 他自己的事：吃饭、歇会儿、出去转转。同样按钟点来
 const AWAY_THINGS = [
-  '去吃饭', '去洗澡', '眯一会儿', '出去转转', '去健身房',
-  '去超市买点东西', '下楼抽根烟', '去拿个快递', '打会儿游戏',
-  '去泡个脚', '出门溜达一圈',
+  { t: '去吃饭', hours: [11, 12, 17, 18, 19] },
+  { t: '去洗澡', hours: [20, 21, 22] },
+  { t: '眯一会儿', hours: [12, 13] },
+  { t: '出去转转', hours: [15, 16, 17, 18, 19, 20] },
+  { t: '去超市买点东西', hours: [17, 18, 19, 20] },
+  { t: '下楼抽根烟', hours: [10, 11, 15, 16, 20, 21] },
+  { t: '去拿个快递', hours: [17, 18, 19, 20] },
+  { t: '打会儿游戏', hours: [20, 21, 22] },
+  { t: '去泡个脚', hours: [21, 22] },
+  { t: '去接杯水', hours: [9, 10, 11, 14, 15, 16] },
+  { t: '出门溜达一圈', hours: [15, 16, 17, 18, 19, 20] },
 ];
+
+/** 从带钟点的清单里，挑这个点能用的。
+ *  ⚠️ 千万别用"回退到某个钟点"当兜底 —— 老写法在凌晨回退到 20 点的清单，
+ *     结果凌晨一点挑到"出去转转""去拿个快递"。挑不到就按类别给一句稳的。 */
+function pickThingByHour(list, h, kind) {
+  const hh = ((h % 24) + 24) % 24;
+  const ok = list.filter(x => x.hours.includes(hh));
+  if (ok.length) return ok[Math.floor(Math.random() * ok.length)].t;
+  // 挑不到：按"是工作还是自己的事"给一句任何点都成立的
+  return kind === 'work' ? '有点事' : '去歇会儿';
+}
 
 const isAway = () => (S.busyUntil || 0) > Date.now();
 
@@ -1633,9 +1909,8 @@ function maybeStartBusy() {
     return false;                                        // 深夜不离开
   }
 
-  const list = kind === 'work' ? BUSY_THINGS : AWAY_THINGS;
   S.busyUntil = Date.now() + mins * 60000;
-  S.busyWhat = list[Math.floor(Math.random() * list.length)];
+  S.busyWhat = pickThingByHour(kind === 'work' ? BUSY_THINGS : AWAY_THINGS, h, kind);
   S.busyKind = kind;
   S.busyMissed = 0;
   save();
@@ -1732,7 +2007,253 @@ async function comeBack() {
   finally { S._suppressBusy = false; }
 }
 
+// ============================================================
+//  别每次都一样 —— 这是最容易让人出戏的地方
+//
+//  根因：她要是重复同一句（"嗯呢""在干嘛"），而上下文也差不多，
+//  那发给模型的整个请求几乎一模一样 —— 输出自然一模一样。
+//  所以要在提示词里主动"抖一下"。
+//
+//  三招：
+//   1) 明确告诉他"这句话你刚说过，换个说法"
+//   2) 每轮随机挑一个"口味"（更短 / 加一个「嗯呢」/ 先问一句 / 损她一下…）
+//   3) 语气程度随机松紧
+// ============================================================
+
+/** 他最近说过的话（用来查"是不是又说了一遍") */
+function hisRecentLines(n = 8) {
+  return S.history.filter(m => m.r === 'him').slice(-n).map(m => String(m.t));
+}
+
+/** 她这句是不是刚说过（连续重复） */
+function sheRepeatedHerself(herText) {
+  const s = String(herText || '').trim();
+  if (!s || s.length > 12) return false;           // 长句子不算重复
+  const mine = S.history.filter(m => m.r === 'me').slice(-6).map(m => String(m.t).trim());
+  return mine.filter(x => x === s).length >= 2;
+}
+
+const MOOD_FLAVOR = {
+  great: ['今天松快，可以多说半句，也可以损她一下', '心情好，愿意主动讲点自己的事',
+    '轻松点，可以逗她', '可以多问一句她的事'],
+  good: ['平常口气，别多话', '按平时的来', '不冷不热，正常聊'],
+  tired: ['累，回得更短更少，别展开', '没力气，能少说就少说',
+    '累得不想多讲，一个字一个字往外蹦都行'],
+  busy: ['在忙，短、快、别聊开', '忙，回一句就行', '手上有事，别多说'],
+  low: ['有点沉，话更少，别装开心', '情绪不高，短一点，别硬撑',
+    '心里闷，就一两句，不想展开'],
+};
+
+const STYLE_NUDGES = [
+  '这次可以比平时更短，一两个字也行',
+  '这次多说半句，比平时多一点点',
+  '这次开头可以用个「嗯呢」或者「喔」',
+  '这次别急着接话，先问一句她',
+  '这次可以带一个表情，比如[旺柴]',
+  '这次语气软一点，「好不好」收尾',
+  '这次可以损她一句，像平时那样',
+  '这次话就一两句，别凑三条',
+  '这次可以提一句你那边的事',
+  '这次顺着她说，别加新话题',
+  '这次可以「。。。」开头',
+  '这次可以叫一声「宝」',
+];
+
+/** 给这一轮随机挑一个"口味" + 一句风格提示。返回一段塞给他的字。 */
+function styleNudge(herText, mood) {
+  const parts = [];
+
+  // ① 她要是重复问同一句，明确告诉他别再答一遍
+  if (sheRepeatedHerself(herText)) {
+    parts.push('她这句话刚才已经说过了。**别把上次的回答再发一遍** —— '
+      + '换个说法，或者换个角度，或者干脆问她一句。');
+  }
+
+  // ② 明确禁止重复他最近说过的话
+  const recent = hisRecentLines(6);
+  if (recent.length) {
+    parts.push('你最近说过这些：' + recent.map(x => '「' + x.slice(0, 12) + '」').join('')
+      + '。**这一轮不要出现一模一样的句子。**');
+  }
+
+  // ③ 随机挑一个"口味"（心情 + 风格）
+  const flav = (MOOD_FLAVOR[mood] || MOOD_FLAVOR.good);
+  const pickFlav = flav[Math.floor(Math.random() * flav.length)];
+  if (Math.random() < 0.75) parts.push('这一轮：' + pickFlav + '。');
+
+  // ④ 随机风格（不是每轮都给，给了就像有人在他耳边提一句）
+  if (Math.random() < 0.6) {
+    parts.push('（' + STYLE_NUDGES[Math.floor(Math.random() * STYLE_NUDGES.length)] + '）');
+  }
+
+  // ⑤ 偶尔明确点他"别老是那几句"
+  if (Math.random() < 0.3) {
+    parts.push('**你最近回得太顺嘴了 —— 换一种说法。**');
+  }
+
+  return parts.length ? '【这一轮】' + parts.join(' ') : '';
+}
+
+// ============================================================
+//  接得上话 —— "前言不搭后语"是这么来的
+//
+//  "过一会儿又想起来一条"那条路，以前只跟他说"别接着刚才那句往下讲"，
+//  却没告诉他你刚才说了什么 —— 他只能凭空想一句，自然驴唇不对马嘴。
+//  现在把他俩刚才那两轮原文递给他，他才知道该接什么。
+// ============================================================
+
+/** 刚才那一轮：她说了什么、他回了什么 */
+function lastExchange() {
+  const h = S.history;
+  let herIdx = -1;
+  for (let i = h.length - 1; i >= 0; i--) { if (h[i].r === 'me') { herIdx = i; break; } }
+  if (herIdx < 0) return null;
+  const her = String(h[herIdx].t || '').trim();
+  const mine = h.slice(herIdx + 1).filter(m => m.r === 'him').map(m => String(m.t).trim());
+  return { her, mine };
+}
+
+/** 他刚说的那一口气 */
+function hisLastBurst(n = 4) {
+  return S.history.filter(m => m.r === 'him').slice(-n).map(m => String(m.t || '').trim());
+}
+
+/** 她这句话是不是在说"你刚才说得不对/接不上" —— 学她自己给的反馈 */
+function herReplyComplaint(t) {
+  const s = String(t || '').replace(/\s/g, '');
+  if (!s) return '';
+  if (/你答非所问|不是这个意思|你没懂|你理解错|你没看我说|你回错|你没回答|牛头不对马嘴|你跑题|你说的是啥|你瞎说|谁问你这个|我没这么问/.test(s)) {
+    return '接不上她的话';
+  }
+  if (/你别这么说|你干嘛这么说|你怎么能这么说|你不该说|别这样说|你说这个干嘛|你说这干嘛/.test(s)) {
+    return '说了不该说的话';
+  }
+  if (/说得不对|不对吧|不是这样|你错|你搞错|搞错了/.test(s)) return '说岔了';
+  if (/太长了|说这么长|简短点|短点|别啰嗦|废话(真)?多|说重点/.test(s)) return '话太长';
+  if (/听不懂|看不明白|啥意思|什么意思啊|你说啥/.test(s)) return '说得不清不楚';
+  return '';
+}
+
+/** 把这一条毛病记进他自己的账上（去重） */
+function noteSelfGap(item) {
+  if (!item) return false;
+  const key = String(item).trim();
+  if (!key) return false;
+  if (String(S.feedback || '').includes(key)) return false;
+  S.feedback = (S.feedback ? S.feedback + '；' : '') + key;
+  S.lastFeedbackAt = Date.now();
+  save(true);
+  return true;
+}
+
+// 不需要"接话"的话：安慰、关心、万能短句 —— 任何上下文都成立，不算跑题
+const UNIVERSAL_LINES = [
+  '嗯呢', '喔', '哦哦', '嗯呐', '咋了', '在干啥', '在干嘛', '想我没', '你妈呢',
+  '困不困', '摸摸', '抱抱', '乖', '睡吧', '早点睡', '辛苦了', '我在', '嗯',
+  '别担心', '别急', '没事', '不急', '慢慢来', '有我呢', '我在呢', '别怕',
+  '别瞎想', '别多想', '不哭', '别哭', '好不好', '宝', '老婆', '知道了',
+];
+/** 是不是"安慰/关心"类的话 —— 这类不需要承接上文 */
+const isComfortLine = (s) => /别担心|别急|没事|不急|慢慢来|有我|我在|别怕|别瞎想|别多想|不哭|别哭|抱抱|摸摸|乖|辛苦|好不好|不怕|会好的|稳住/.test(s);
+
+/**
+ * 这句"补的话"接得上她刚才那句吗？
+ * 判据（满足一个就算接得上）：
+ *   · 是万能短句或安慰话（本来就不承上）
+ *   · 跟她那句话共享 2 个字（说明在聊同一件事）
+ *   · 共享 1 个"实词"字（医、院、药、累、哭… 这种带信息的）
+ *   · 提到了他自己刚说过的那件事
+ * 都不满足 = 凭空换话题，就是"前言不搭后语"，不发。
+ *
+ * 为什么不是"共享一个字就算"：那样「今天」的"天"会让
+ * 「食堂那个菜咸死了」看起来接得上 —— 太松了。
+ */
+function connectsToHer(said, herSaid) {
+  const s = String(said || '').trim();
+  const her = String(herSaid || '').trim();
+  if (!s) return false;
+  if (UNIVERSAL_LINES.includes(s)) return true;
+  if (isComfortLine(s)) return true;
+  if (s.length <= 3) return true;
+  if (!her) return true;
+
+  const chars = (x) => new Set(String(x)
+    .replace(/[的了在是我你他她吗呢吧啊呀哦嘛么都也很就还？，。！、\s]/g, '')
+    .split(''));
+  const a = chars(s), b = chars(her);
+  const shared = [...a].filter(c => b.has(c));
+  if (shared.length >= 2) return true;
+  // 共享一个字时，只有"实词"才算 —— 常用虚字（天/好/个/来…）不算
+  if (shared.length === 1 && /[医院药病疼累哭忙睡吃里事钱妈爸猫狗雨冷热饭菜考学论查报告]/.test(shared[0])) {
+    return true;
+  }
+
+  // 跟他自己刚才说的那口气有没有关联（同一条主线）
+  const mine = hisLastBurst(4);
+  for (const m of mine) {
+    const d = chars(m);
+    const sh2 = [...a].filter(c => d.has(c));
+    if (sh2.length >= 2) return true;
+  }
+  return false;
+}
+
 function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+// ============================================================
+//  文字大小 —— 手机上看着累就调大
+//  所有字号都乘这个数（CSS 里的 --fs）。1.08 比原来大一点，
+//  而且输入框超过 16px，iOS 就不会一点就自动放大页面了。
+// ============================================================
+const FONT_SIZES = [
+  { k: 1.0, name: '标准' },
+  { k: 1.08, name: '大一点' },
+  { k: 1.2, name: '大' },
+  { k: 1.35, name: '很大' },
+];
+const DEFAULT_FS = 1.08;
+
+function applyFontScale() {
+  const k = Number(S.fontScale) || DEFAULT_FS;
+  // 加保护：这里是 boot 的第一步，万一出问题会整页空白。
+  // 宁可字号不生效，也绝不能把界面弄没了。
+  try {
+    const root = document && document.documentElement;
+    if (root && root.style && typeof root.style.setProperty === 'function') {
+      root.style.setProperty('--fs', String(k));
+    }
+  } catch { /* 字号没生效没关系，别让页面白屏 */ }
+}
+
+function setFontScale(k) {
+  S.fontScale = Number(k) || DEFAULT_FS;
+  save(true);
+  applyFontScale();
+  buildFontButtons();
+  const hit = FONT_SIZES.find(x => Math.abs(x.k - S.fontScale) < 0.001);
+  sysNote('文字大小：' + (hit ? hit.name : S.fontScale) + '。看着还是累就再调一档。');
+}
+
+/** 设置里那排"标准 / 大一点 / 大 / 很大"按钮 */
+function buildFontButtons() {
+  const row = $('#fsRow');
+  if (!row) return;
+  const cur = Number(S.fontScale) || DEFAULT_FS;
+  row.innerHTML = '';
+  for (const f of FONT_SIZES) {
+    const b = document.createElement('button');
+    b.className = 'b' + (Math.abs(f.k - cur) < 0.001 ? '' : ' ghost');
+    b.textContent = f.name;
+    b.addEventListener('click', () => setFontScale(f.k));
+    row.appendChild(b);
+  }
+  // 预览一行，方便她直接看出效果
+  const p = document.createElement('div');
+  p.className = 'hint';
+  p.style.cssText = 'flex-basis:100%;margin-top:10px';
+  p.textContent = '预览：嗯呢 —— 刚下门诊，今天人多。';
+  row.appendChild(p);
+}
 
 // ============================================================
 //  微信内置浏览器 —— 必须提醒，不然记忆会"看起来没了"
@@ -1776,21 +2297,163 @@ function recoverEnergy() {
   }
 }
 
-/** 按"几点、精力多少、星期几"，挑他此刻的心情。抽出来是为了能单独测。 */
+// ============================================================
+//  心情怎么来的 —— 三条路
+//  1) 每天一个"底色"（dayTemper）：这几天顺 / 这几天就是沉。
+//     不是"周几一定什么样"，是有惯性，也有走运的时候。
+//  2) 一天换好几回（currentMood 里的 holdMs 缩短了）。
+//  3) 她说了什么会影响他（reactToHer）—— 这是"因为我变化"。
+//     而且她暖的时候，他那种心情会被"记住"，以后更容易出现。
+// ============================================================
+
+/** 今天的底色：-1 到 1。同一天不变，隔天重摇。
+ *  规矩：只有"真的换天了"才重摇。
+ *  这样它才有惯性（这几天顺就是顺），而不是每次调用都可能变。 */
+function dayTemper() {
+  const today = todayStr();
+  const rolled = (typeof S.temper === 'number' && S.temper !== null);
+  // 还在同一天、也已经摇过 → 直接用，别重摇
+  if (S.temperDay === today && rolled) return S.temper;
+
+  // 该摇（或外部指定了日子但没给底色）
+  S.temperDay = today;
+  const r = Math.random();
+  if (r < 0.18) S.temper = 0.55 + Math.random() * 0.45;        // 顺的一天
+  else if (r < 0.36) S.temper = -(0.45 + Math.random() * 0.55); // 沉的一天
+  else S.temper = (Math.random() - 0.5) * 0.8;
+  save();
+  return S.temper;
+}
+
+/** 她什么反应算"暖"（用来学：他哪种心情能换来她的好脸色） */
+const isWarmToHim = (t) => /爱你|么么|mua|抱抱|亲亲|想你|喜欢你|好可爱|哈哈|嘿嘿|真好|谢谢你|你最|乖|摸摸/.test(String(t || ''));
+/** 她明显冷/烦（短、或者带刺）—— 连续两三次才算，单独一条不算 */
+const isColdToHim = (t) => /烦|别说了|不想听|讨厌|滚|无聊|嗯$|哦$|好$|行$|随便|无所谓|算了/.test(String(t || '').trim());
+
+/** 她让他的心情变了多少。返回一个 -1~1 的偏移。 */
+function herMoodPush(herText) {
+  const s = String(herText || '');
+  if (!s) return 0;
+  let push = 0;
+
+  if (isWarmToHim(s)) push += 0.55;                                   // 她暖 → 他跟着好
+  // 注意："想你"不能算难过 —— 她说"想你了"是甜的，不是苦的。
+  // （以前把它塞进"她难受"那条里，跟"她说爱我"互相抵消，结果她越说想他、他越没反应）
+  if (/我难过|难受|想哭|哭了|委屈|崩溃|撑不住|好慌|心慌|害怕|一个人|孤单|没人陪/.test(s)) push -= 0.5;
+  // 但"一个人想你"这种，确实是苦的
+  if (/一个人.{0,4}想你|想你.{0,4}一个人|好想你在|你不在/.test(s)) push -= 0.35;
+  if (/你真好|谢谢你|还是你好|有你在/.test(s)) push += 0.6;            // 夸他 → 他得意
+  if (/你说得对|听你的|好嘛|我改/.test(s)) push += 0.3;                // 顺着他 → 他松快
+  if (/你(又|怎么|为什么|为啥)(不|没)|敷衍|你是不是不爱|别不要我/.test(s)) push -= 0.55;  // 追问他 → 他压力大
+  if (/吵架|生气|凭什么|烦死|我恨/.test(s)) push -= 0.6;               // 她在气头上
+
+  // 她连着几条都很短很冷 —— 他会觉得没劲
+  const recentMe = S.history.filter(m => m.r === 'me').slice(-4);
+  if (recentMe.length >= 3) {
+    const coldN = recentMe.filter(m => isColdToHim(m.t) && String(m.t).length <= 3).length;
+    if (coldN >= 3) push -= 0.35;
+  }
+
+  // 她这几天总是暖的 → 他整体偏亮；总在难受 → 他整体偏沉
+  const learned = learnedMoodBias();
+  push += learned;
+
+  return Math.max(-1, Math.min(1, push));
+}
+
+/** 从"她以前的反应"里学：他哪种心情换来过她的好脸色 */
+function learnedMoodBias() {
+  const hist = (S.moodRewards || []).slice(-40);   // [{mood, at}]
+  if (hist.length < 3) return 0;
+  const cnt = {};
+  for (const h of hist) cnt[h.mood] = (cnt[h.mood] || 0) + 1;
+  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+  if (!top) return 0;
+  // 最多推 0.15 —— 学，但别学成谄媚
+  const strength = Math.min(0.15, top[1] / hist.length * 0.25);
+  if (top[0] === 'great' || top[0] === 'good') return strength;
+  if (top[0] === 'low' || top[0] === 'tired') return -strength * 0.5;
+  return 0;
+}
+
+/** 记一笔：他当时是什么心情，她说了一句暖话 */
+function noteMoodReward() {
+  if (!S.mood) return;
+  const last = S.history[S.history.length - 1];
+  if (!last || last.r !== 'me' || !isWarmToHim(last.t)) return;
+  // 她暖的时候，他上一条是什么心情
+  const himMsgs = S.history.filter(m => m.r === 'him');
+  const prevMood = S.mood;
+  if (!S.moodRewards) S.moodRewards = [];
+  S.moodRewards.push({ mood: prevMood, at: Date.now() });
+  if (S.moodRewards.length > 200) S.moodRewards = S.moodRewards.slice(-200);
+}
+
+/** 她这条话，会不会立刻改变他此刻的心情 */
+function reactToHer(herText) {
+  const push = herMoodPush(herText);
+  if (!push) return null;
+  const cur = S.mood || 'good';
+
+  // 心情有惯性：推得太小不动；推得够大才换一档
+  const ORDER = ['low', 'tired', 'busy', 'good', 'great'];
+  let i = ORDER.indexOf(cur);
+  if (i < 0) i = 3;
+
+  if (push >= 0.5) i += 1;                 // 明显变好
+  else if (push <= -0.5) i -= 1;           // 明显变差
+  else if (Math.abs(push) >= 0.3) i += (push > 0 ? 1 : -1);   // 小推一把
+
+  i = Math.max(0, Math.min(ORDER.length - 1, i));
+  const next = ORDER[i];
+  if (next === cur) return null;
+
+  S.mood = next;
+  S.moodSetAt = Date.now();
+  save();
+  return next;
+}
+
+/** 按"几点、精力多少、星期几"，挑他此刻的心情。抽出来是为了能单独测。
+ *  这里只管"他自己一个人时的底色"。她说了什么会另外影响，见 reactToHer()。 */
 function pickMood(h, e, dow) {
   const r = Math.random();
   const day = (dow == null ? new Date().getDay() : dow);
-  const weekend = day === 0 || day === 6;
-  const workday = !weekend && h >= 9 && h < 18;
-  const evening = !weekend && h >= 19 && h < 23;
-  const night = h >= 23 || h < 6;
 
   // 法定假日按"休息日"算，补班日按"上班日"算
   const info = dayInfo();
   const restDay = info.isHoliday && !info.makeup;
   const workDay = !restDay;
 
+  // ⚠️ 别拿"星期几"单算上班/下班 —— 那跟节假日表是两套逻辑，会打架。
+  //    （老 bug：周六下午既不算上班、也不算放假，掉进兜底分支，
+  //      结果"周六下午心情好"只有 7%，比上班日还低。）
+  const workday = workDay && h >= 9 && h < 18;
+  const evening = workDay && h >= 19 && h < 23;
+  const night = h >= 23 || h < 6;
+
+  // 每天给他一个"底色"：有人这几天顺，有人这几天就是沉。
+  // 这样就不是"周几一定什么样"，而是有惯性、也有走运的时候。
+  const t = dayTemper();
+
   if (e < 0.3) return r < 0.7 ? 'tired' : 'low';              // 聊太多，累瘫了
+
+  // 底色差的时候，更容易累、更容易沉
+  if (t < -0.45) {
+    if (r < 0.06) return 'great';
+    if (r < 0.22) return 'good';
+    if (r < 0.55) return 'tired';
+    if (r < 0.90) return 'low';
+    return 'busy';
+  }
+  // 底色好的时候，明显更容易松快
+  if (t > 0.45) {
+    if (r < 0.34) return 'great';
+    if (r < 0.62) return 'good';
+    if (r < 0.82) return 'tired';
+    if (r < 0.92) return 'low';
+    return 'busy';
+  }
 
   if (restDay) {                                              // 放假：心情好的机会最多
     if (r < 0.34) return 'great';
@@ -1799,22 +2462,27 @@ function pickMood(h, e, dow) {
     if (r < 0.92) return 'low';
     return 'busy';
   }
-  if (info.makeup || workday) {                               // 上班：忙为主，也有顺的时候
-    if (r < 0.12) return 'great';
-    if (r < 0.28) return 'good';
-    if (r < 0.78) return 'busy';
-    return 'tired';
-  }
-  if (evening) {                                              // 下班后：容易松快
+  // ⚠️ 顺序要紧：晚上那一段必须在"上班"之前判断。
+  //    以前 workday 写的是 h>=9 && h<18 却排在 evening（19~23点）前面，
+  //    结果他工作日晚上永远走不到"下班后"那个分支 ——
+  //    「有点沉」这个心情在工作日永远出不来。她晚上找他，他永远不累。
+  if (evening) {                                              // 下班后：容易松快，但也容易沉
     if (r < 0.30) return 'great';
     if (r < 0.55) return 'good';
     if (r < 0.82) return 'tired';
     return 'low';
   }
-  if (night) {                                                // 深夜：多半累了
+  if (info.makeup || workday) {                               // 上班时间：忙为主
+    if (r < 0.12) return 'great';
+    if (r < 0.28) return 'good';
+    if (r < 0.78) return 'busy';
+    return 'tired';
+  }
+  if (night) {                                                // 深夜：多半累了（before 也要含进来）
     if (r < 0.12) return 'great';
     if (r < 0.42) return 'good';
-    return 'tired';
+    if (r < 0.90) return 'tired';
+    return 'low';
   }
   if (r < 0.28) return 'great';                               // 清早/其他
   if (r < 0.55) return 'good';
@@ -1828,8 +2496,10 @@ function currentMood() {
   const h = new Date().getHours();
   const e = S.energy == null ? 1 : S.energy;
 
-  // 心情撑着多久：累/在忙短一点，别的一天换两三次
-  const holdMs = (S.mood === 'tired' || S.mood === 'busy') ? 45 * 60000 : 4 * 3600000;
+  // 心情撑多久 —— 原来 4 小时，一天才换两三次，太死。
+  // 现在 40~100 分钟就换一档，一天能变五六回，像真的。
+  const base = (S.mood === 'tired' || S.mood === 'busy') ? 35 : 75;
+  const holdMs = (base + Math.random() * 40) * 60000;
   if (S.mood && MOODS[S.mood] && Date.now() - (S.moodSetAt || 0) < holdMs) return S.mood;
 
   S.mood = pickMood(h, e);
@@ -1879,6 +2549,7 @@ function newRound() {
   };
   if (roundCache.share) noteShare();     // 一轮只记一次
   roundCache.hourRules = hourRules(roundCache.hour);
+  roundCache.schedule = scheduleLine(roundCache.hour);
   // 他会不会这会儿要离开一会儿？
   // 注意：不在这里就把他标成"离开" —— 得等他先把"我出去一趟，一小时"说出口。
   // awayPlan 只是先把回来的时刻定死；等他真说了那句，离开才生效。
@@ -1898,6 +2569,8 @@ function newRound() {
   // 她这一句需要特殊照顾吗（要保证/自责/说不清/做成了一件事）
   roundCache.care = S._care || '';
   S._care = '';
+  // 这一轮的"口味" —— 别每次都一样（要放在 mood 定了之后）
+  roundCache.style = styleNudge(S._lastHerText || '', roundCache.mood);
   return roundCache;
 }
 
@@ -1968,9 +2641,13 @@ function timeContext() {
   if (S._hint) { out += '【这一轮】' + S._hint; S._hint = ''; }
   // 她这一句需要一个特定的回应方式（要保证/自责/说不清/做成了一件事）
   if (roundCache.care) out += ' ' + roundCache.care;
+  // 别每次都一样 —— 口味/别重复/换说法
+  if (roundCache.style) out += ' ' + roundCache.style;
   out += ' ' + roundCache.day;
   // 这个点该说什么、不该说什么 —— 防"下午四点半说我刚睡了个午觉"这种
   out += ' ' + roundCache.hourRules;
+  // 他此刻人在干嘛（让他有逻辑，不跳戏）
+  if (roundCache.schedule) out += ' ' + roundCache.schedule;
   out += ' ' + moodLine();
   const pat = herPatternNote();
   if (pat) out += ' ' + pat;
@@ -2006,10 +2683,15 @@ function authHeaders() {
 
 /** 流式取回复。onDelta(text) 会被反复调用。 */
 async function streamReply(messages, onDelta) {
+  // 温度也抖一下：她要是重复问同一句、上下文又差不多，
+  // 请求就几乎一模一样了 —— 这时候只有温度的小抖动还能带来变化。
+  const base = Number(S.cfg.temperature) || 0.85;
+  const jitter = (Math.random() - 0.5) * 0.18;          // ±0.09
+  const temp = Math.max(0.6, Math.min(1.15, base + jitter));
   const body = {
     model: S.cfg.model || 'deepseek-chat',
     messages,
-    temperature: Number(S.cfg.temperature) || 0.85,
+    temperature: Number(temp.toFixed(2)),
     max_tokens: Number(S.cfg.maxTokens) || 400,
     stream: true,
   };
@@ -2346,8 +3028,10 @@ function scheduleFollowUp() {
     // 连着两次都是他在冒泡，就不冒第三次了
     if (S.history.slice(-3).every(m => m.r === 'him')) return;
     const cand = FOLLOWUPS.filter(x => !S.history.slice(-8).some(m => m.t === x));
-    if (!cand.length) return;
-    const t = cand[Math.floor(Math.random() * cand.length)];
+    // 过时间这道闸 —— 凌晨不会冒"到家了吗""晚上吃啥""我下班了"
+    const sendable = keepSendable(cand, 99);
+    if (!sendable) return;
+    const t = sendable[Math.floor(Math.random() * sendable.length)];
     S._followedUp = true;                            // 这一轮只主动一次
     pushHistory('him', t);
     addRow('him', t, true);
@@ -2444,31 +3128,39 @@ async function autoReply(firstHint, herText) {
     ? txt.split('|||').map(x => x.trim()).filter(Boolean)
     : splitUtterance(txt);
 
-  // ---- 自检：跟时间对不对得上（下午说"我刚睡了个午觉"就在这里被拦下）----
+  // ---- 自检：跟时间对不对得上（"下午说我刚睡了个午觉""凌晨问晚上吃啥"都在这被拦）----
   const hNow = new Date().getHours();
-  const bads = parts.map(p => timeTravelCheck(p, hNow)).filter(Boolean);
+  const badOf = (arr) => arr.map(p => timeTravelCheck(p, hNow)).filter(Boolean);
+  let bads = badOf(parts);
   if (bads.length) {
     try {
       S._hint = '你刚才想说的这几句跟现在是几点对不上（' + bads[0] + '）。'
-        + '现在是 ' + hNow + ' 点。**重新说，只说跟这个点相称的话。**';
+        + '现在是 ' + hNow + ' 点，你' + hisSchedule(hNow).act + '。'
+        + '**重新说，只说跟这个点相称的话。**';
       const raw2 = await streamReply(buildMessages(), () => { });
       const t2 = String(raw2 || '').trim();
       if (t2) {
-        txt = t2;
-        parts = t2.includes('|||')
+        const p2 = t2.includes('|||')
           ? t2.split('|||').map(x => x.trim()).filter(Boolean)
           : splitUtterance(t2);
+        // 重说的要是也违规，就用重说的这版，但下面还会逐句筛
+        txt = t2; parts = p2;
+        bads = badOf(parts);
       }
     } catch { /* 重说不成功就还是用原来的 */ }
   }
 
-  const picked = [];
-  for (const p of parts) {
-    const clean = harvestSelfFix(p);
-    if (clean && !picked.includes(clean)) picked.push(clean);
-    if (picked.length >= quota) break;
+  // ---- 最后一道闸：任何一条不合逻辑的，直接不发 ----
+  // （光"让他重说"不够 —— 她被抓过三次了。宁可少说一句，也不能说错。）
+  const kept = keepSendable(parts, quota);
+  let picked;
+  if (kept) {
+    picked = kept;
+  } else {
+    // 全军覆没：只说一句跟这个点绝对相称的
+    picked = [safeLineForNow()];
   }
-  if (!picked.length) picked.push('嗯呢');
+  if (!picked.length) picked = ['嗯呢'];
 
   S._lastBurstStart = Date.now();
   for (const b of picked) pushBubble(b);
@@ -2501,12 +3193,22 @@ function scheduleFollowUpBurst(herText) {
     // 别在他刚才那一口气还没落地的时候插进来
     if (Date.now() - (S._lastBurstStart || 0) < 15000) return;
     try {
-      S._hint = '你刚才那几句已经发完了。你现在又想起一件事 —— 补一句。'
-        + '就一句，短的。**不要重复刚才说过的，不要接着刚才那句话往下讲。**'
-        + '可以是：又想起个事、忽然想问一句、看到个什么。';
+      // 把你俩刚才那一轮原文递给他 —— 不然他只能凭空想一句，就驴唇不对马嘴
+      const ex = lastExchange();
+      S._hint = '你刚才那几句已经发完了。现在你又想起一件事，补一句。\n'
+        + (ex ? '她刚才说的是：「' + ex.her.slice(0, 60) + '」\n'
+          + (ex.mine.length ? '你刚回的是：' + ex.mine.map(x => '「' + x.slice(0, 20) + '」').join('') + '\n' : '')
+          : '')
+        + '**补的这一句要跟她刚才说的那件事有关** —— 可以是那句没说完的、'
+        + '忽然想问她的、或者你那边的一个小事。\n'
+        + '**别凭空换一个毫不相干的话题。就一句，短的。**';
       const raw = await streamReply(buildMessages(), () => { });
       const one = harvestSelfFix(String(raw || '').split('|||')[0]);
       if (!one) return;
+      // 跟这个点对不对得上 —— "又想起一件事"这条也得过闸
+      if (msgProblem(one)) return;
+      // 接不接得上她刚才那句话？接不上的就别发（前言不搭后语就是这么来的）
+      if (!connectsToHer(one, ex ? ex.her : '')) return;
       pushHistory('him', one);
       addRow('him', one, true);
       S.lastSeen = Date.now(); save(true);
@@ -2544,12 +3246,26 @@ async function send(text, opts) {
 
   // 她的话
   if (text) {
+    S._lastHerText = text;             // 给"她是不是又问了同一句"用
     pushHistory('me', text, detectHerTags(text));
     addRow('me', text, true);
     // 她是不是明显在难受/着急 —— 忙的时候用来决定要不要破一句
     S._herDistress = /难受|难过|哭|委屈|崩溃|烦|慌|焦虑|孤单|孤独|想你|不理我|不爱我|害怕|撑不住|累死|救命/.test(text);
     // 她这一句是"要保证/自责/说不清/做成了一件事"吗 —— 这一轮的应对方式
     S._care = careMode(text);
+    // 她在说他"这句话不对/接不上"吗 —— 这是他第二条学习路径。
+    // 以前他只在自己"主动写标记"时才学，所以她指出他某句话不对，他学不到。
+    const gap = herReplyComplaint(text);
+    if (gap) {
+      S._replyGap = gap;
+      S._care = (S._care ? S._care + ' ' : '')
+        + '【这一轮】她刚指出你上一句' + gap + '。**先短认一句**（「我说错了」「知道了」），'
+        + '然后**按她说的来** —— 她问什么答什么，别绕开。';
+    }
+    // 她这句话改变他心情了吗 —— 这是"因为我变化"。
+    // 顺序要紧：先在"还没改"的时候记一笔她给的暖，再改心情。
+    noteMoodReward();
+    S._moodMoved = reactToHer(text);
   }
 
   // ---- 他已经说了"我出去一趟，一小时"，现在真的离开了 ----
@@ -2566,8 +3282,10 @@ async function send(text, opts) {
           + '短，别超过 10 个字。要说清你还会回来。';
         const raw = await streamReply(buildMessages(), () => { });
         const one = harvestSelfFix(String(raw || '').split('|||')[0]);
-        if (one) said = one;
+        if (one && !msgProblem(one)) said = one;      // 过闸，不过就用默认那句
       } catch { /* 失败就用默认那句 */ }
+      // "在忙 一会说"这种任何点都成立；万一默认句也不合适，就换一句安全的
+      if (msgProblem(said)) said = '在忙 一会说';
       pushHistory('him', said);
       addRow('him', said, true);
       save(true);
@@ -2614,6 +3332,13 @@ async function send(text, opts) {
     typingOff();
   } finally {
     busy = false;
+    // 她刚指出过他某句话不对 —— 这一轮说完就记进他自己的账上，
+    // 以后每次说话都会带着，逼他改。这是他的第二条学习路径。
+    if (S._replyGap) {
+      const added = noteSelfGap(S._replyGap);
+      if (added) sysNote('（记下了：他刚才' + S._replyGap + '。以后他会注意。）');
+      S._replyGap = '';
+    }
     $('#send').disabled = false;
     $('#input').focus();
     updateMemBar();
@@ -2645,6 +3370,7 @@ function fillSettings() {
   $('#serverUrl').value = c.serverUrl || '';
   $('#webUrl').value = c.webUrl || '';
   $('#webOn').checked = S.webOn !== false;
+  buildFontButtons();
   $('#hisName').value = S.hisName;
   $('#userNameLabel').value = S.userName;
   $('#pin').value = S.pin || '';
@@ -2998,6 +3724,7 @@ async function maybeCatchUp() {
 async function boot() {
   // 在微信里打开的话，先拦一道（不然会以为记忆丢了）
   if (isWeChatBrowser()) { wechatWarn(); return; }
+  applyFontScale();                    // 先套上文字大小，别等渲染完再跳一下
   $('#hisNameLabel').textContent = S.hisName;
   applyUrlSetup();
   bindUI();
