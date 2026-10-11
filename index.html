@@ -1549,7 +1549,10 @@ function forbiddenTopics(h) {
     out.push({ re: /出去转|出门|溜达|散步/, why: '这个点不该出去转' });
   }
   if (hh >= 3 && hh < 9) {
-    out.push({ re: /晚安|去睡吧/, why: '这会儿天快亮了，不适合说晚安' });
+    // 别再禁"晚安"了 —— 凌晨三四点他说不出晚安，就永远进不了"睡着"状态，
+    // 然后她发一句他回一句（她截图里就是这个）。
+    // 要禁的是"天亮了还道晚安"这种，所以窗口收窄到 7 点以后。
+    if (hh >= 7) out.push({ re: /晚安|去睡吧/, why: '天都亮了，不适合说晚安' });
   }
   return out;
 }
@@ -2258,16 +2261,26 @@ function saysGoodnight(t) {
   if (/(我|那(我|就)?)?(先去|去|要|该|得)?睡了|我睡了|去睡了|睡觉去了|先睡了|睡了哈|睡了哦|我去睡|睡了啊|眯了|不聊了.*睡|早点睡|睡吧|晚安/.test(s)) {
     return true;
   }
-  if (/^晚安/.test(s) || s === '晚安') return true;
+  // "睡吧"也算 —— 跟她说晚安是一个意思
+  if (s === '睡吧' || /^晚安/.test(s)) return true;
   return false;
 }
 
-/** 现在算不算"他睡着了"：他说了睡，而且还没到早上 */
+/** 现在算不算"他睡着了"。
+ *  两种情况：
+ *   ① 他自己说过要睡（asleepAt 有值）
+ *   ② 深夜他还没说过 —— 那就默认他睡了。
+ *      真人半夜本来就不会秒回；而"他说了睡就没动静"是她明确要的。
+ *      她半夜真难受的时候，会走"破一句"那条路，不会完全不管她。 */
 function isAsleep() {
+  const h = new Date().getHours();
+  // 深夜没说过晚安 → 默认睡了（她截图的 04:25 就是这种情况）
+  if (!S.asleepAt && (h >= 1 && h < 6)) {
+    S.asleepAt = Date.now();          // 从这一刻起算，她今晚说的话明天他会接
+    save();
+  }
   const t = S.asleepAt || 0;
   if (!t) return false;
-  const h = new Date().getHours();
-  // 睡着的时段：从他说睡那一刻，到他那边天亮（6点后）
   const slept = Date.now() - t;
   if (h >= 6 && h < 20) { S.asleepAt = 0; save(); return false; }   // 白天了，醒了
   if (slept > 14 * 3600000) { S.asleepAt = 0; save(); return false; } // 超过14小时，算醒了
@@ -3256,6 +3269,7 @@ function pushBubble(t) {
   if (queued.includes(t) || (recentHim[recentHim.length - 1] === t)) return;
 
   hisQueue.push({ t });
+  sentThisRound = true;      // 这一轮确实有话要发（sleepByLastBubble 靠它判断）
   startDelivery();
 }
 
@@ -3405,6 +3419,7 @@ async function autoReply(firstHint, herText) {
   S._wantsFix = looksLikeAComplaint(herText);
 
   lastBubbleAt = 0;
+  sentThisRound = false;                 // 这一轮重新算
   S._hint = firstHint || '';
   if (S._wantsFix) {
     S._hint = (S._hint ? S._hint + ' ' : '') + '她这是在说你哪儿不对。'
@@ -3564,13 +3579,23 @@ function scheduleFollowUpBurst(herText) {
 
 /** 等队列里最后一句真的显示在屏幕上（最多等 12 秒） */
 let lastBubbleAt = 0;
-function sleepByLastBubble() {
+// 这一轮到底有没有往外发东西 —— 用它而不是 lastBubbleAt。
+// lastBubbleAt 是全局的，上一轮留下的值会让这一轮误以为"还有话没落地"而干等。
+let sentThisRound = false;
+/** 等这一轮的话真的落到屏幕上。
+ *  ⚠️ 必须有硬上限：只要出现"该说话但一句也没发出去"的情况，
+ *     没有上限就会永远等下去（run_catchup 就是被这个卡死的）。 */
+function sleepByLastBubble(maxMs = 12000) {
   return new Promise(resolve => {
+    if (!sentThisRound && !hisQueue.length) return resolve();   // 什么都没发，立刻走
     const t0 = Date.now();
     const check = () => {
-      if ((!hisQueue.length && lastBubbleAt) || Date.now() - t0 > 12000) resolve();
+      const done = (!hisQueue.length && sentThisRound) || Date.now() - t0 > maxMs;
+      if (done) resolve();
       else setTimeout(check, 100);
     };
+    // 保险：万一 check 的循环出不来，到点也必须 resolve
+    setTimeout(resolve, maxMs + 800);
     check();
   });
 }
