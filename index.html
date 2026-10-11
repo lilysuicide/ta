@@ -162,6 +162,42 @@ button.b:active{opacity:.75;}
 </style>
 </head>
 <body>
+<!-- 万一脚本本身出错，这一条会显示出来。不然界面是死的，谁也不知道为什么。 -->
+<div id="fatal" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:9999;
+     background:#3a1d1d;color:#ffe9e9;font:13px/1.5 -apple-system,sans-serif;
+     padding:10px 12px calc(10px + env(safe-area-inset-bottom));max-height:45vh;overflow:auto;
+     border-top:2px solid #a33;">
+  <b>出错了</b>（把这段发给做这个的人）：
+  <div id="fatalMsg" style="margin-top:6px;white-space:pre-wrap;word-break:break-all;"></div>
+</div>
+<script>
+// 兜底：任何脚本错误都摊开给她看，别让界面变成死的
+window.__fatal = function (what) {
+  try {
+    var d = document.getElementById('fatal'), m = document.getElementById('fatalMsg');
+    if (!d || !m) return;
+    m.textContent = String(what).slice(0, 900);
+    d.style.display = 'block';
+  } catch (e) { }
+};
+window.addEventListener('error', function (e) {
+  window.__fatal((e.message || 'unknown') + '\n' + (e.filename || '') + ':' + (e.lineno || ''));
+});
+window.addEventListener('unhandledrejection', function (e) {
+  var r = e.reason;
+  window.__fatal('Promise: ' + ((r && r.message) ? r.message : r));
+});
+// 5 秒后如果界面还是空的，说明启动卡住了 —— 说清楚，别让她对着白屏
+setTimeout(function () {
+  try {
+    var l = document.getElementById('list');
+    var h = document.getElementById('hisNameLabel');
+    if (l && !l.children.length && h && !h.textContent.trim()) {
+      window.__fatal('启动没有完成（可能是浏览器不支持 IndexedDB，或者脚本被拦了）。\n试试：完全关掉再打开；还不行就换 Safari 打开。');
+    }
+  } catch (e) { }
+}, 5000);
+</script>
 <div id="app">
 
   <header>
@@ -187,7 +223,7 @@ button.b:active{opacity:.75;}
 <div class="sheet" id="sheet">
   <header>
     <button id="close-settings" aria-label="返回">&#8249;</button>
-    <div class="who"><b>设置</b><span>只有你自己看得见</span></div>
+    <div class="who"><b>设置</b><span id="verLine">版本</span></div>
   </header>
   <div class="body">
 
@@ -1497,6 +1533,9 @@ export const SYSTEM_TEMPLATE = [
 
 
 const LS = 'sunyiming.v1';
+// 这一版的编号 —— 打包时会替换成真正的时间。
+// 她在设置页看这一行，就知道自己打开的是新版、还是被 iOS 缓存的旧版。
+const BUILD_ID = "10-12 07:15";
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 
@@ -2858,7 +2897,9 @@ function saysGoodnight(t) {
 function isAsleep() {
   const h = new Date().getHours();
   // 深夜没说过晚安 → 默认睡了（她截图的 04:25 就是这种情况）
-  if (!S.asleepAt && (h >= 1 && h < 6)) {
+  // （测试里会把 __DSH_NO_NIGHTSLEEP 设上，免得跑在凌晨时误判）
+  if (!S.asleepAt && (h >= 1 && h < 6)
+    && !(typeof globalThis !== 'undefined' && globalThis.__DSH_NO_NIGHTSLEEP)) {
     S.asleepAt = Date.now();          // 从这一刻起算，她今晚说的话明天他会接
     save();
   }
@@ -4965,6 +5006,25 @@ function fillSettings() {
   $('#longMemory').value = S.longMemory;
   $('#profile').value = S.profile;
   updateMemBar();
+  showVersion();
+}
+
+/** 设置页顶上那一行：版本 + 存储状态。
+ *  她一眼就能看出"我打开的是不是新版"、"记录存在哪儿"。 */
+async function showVersion() {
+  const box = $('#verLine');
+  if (!box) return;
+  const where = storageLoaded
+    ? (idbReady ? '大存储' : '小存储')
+    : '还没读';
+  let imgs = '';
+  try {
+    if (idbReady) {
+      const st = await imageStats();
+      if (st.count) imgs = '，' + st.count + ' 张照片';
+    }
+  } catch { }
+  box.textContent = (BUILD_ID || '版本?') + ' · ' + S.history.length + ' 条' + imgs + ' · ' + where;
 }
 
 function bindUI() {
@@ -5434,12 +5494,21 @@ async function boot() {
   }
 
   renderAll();
-  // 迁移结果说一声（她最怕记录没了，那就明明白白告诉她搬过来了）
-  if (mig && mig.migrated) {
-    sysNote('（记录换到更大的存储里了 —— 一共 ' + S.history.length + ' 条'
-      + (mig.images ? '，其中 ' + mig.images + ' 张照片' : '')
-      + '。以后能存的东西多得多，不容易再满了。）');
-  }
+  // 存储这一块，开机就说清楚（她最怕"记录没了"，那就明明白白给她看）
+  try {
+    if (mig && mig.migrated) {
+      sysNote('（✓ 打开的是新版 ' + BUILD_ID + '。记录已经从"小存储"搬到"大存储"了 —— '
+        + '一共 ' + S.history.length + ' 条'
+        + (mig.images ? '，其中 ' + mig.images + ' 张照片' : '')
+        + '。以后能存的东西多得多，不容易再满了。）');
+    } else if (mig && mig.from === 'idb') {
+      sysNote('（✓ 打开的是新版 ' + BUILD_ID + '。记录在大存储里，'
+        + S.history.length + ' 条，都在。）');
+    } else if (mig && mig.from === 'no-idb') {
+      sysNote('（⚠️ 这个浏览器不给用"大存储"，记录还是放在小存储里（约 5MB）。'
+        + '功能都能用，但别放太多照片；也记得多存几份备份码。）');
+    }
+  } catch { }
   // 存不住东西 —— 先把原因告诉她，别让她一直白忙
   if (!storageOK) {
     storageWarn();
