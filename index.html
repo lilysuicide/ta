@@ -673,7 +673,7 @@ export const SYSTEM_TEMPLATE = [
 const LS = 'sunyiming.v1';
 // 这一版的编号 —— 打包时会替换成真正的时间。
 // 她在设置页看这一行，就知道自己打开的是新版、还是被 iOS 缓存的旧版。
-const BUILD_ID = "对话核心 v2 · 亲近与具体关心";
+const BUILD_ID = "对话核心 v2 · 连贯分享与接话";
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 
@@ -1222,7 +1222,15 @@ async function tryProactiveCare() {
  try{await send('',{hint});return true;}finally{S._suppressBusy=false;S._careCandidate=null;}
 }
 
-const CORE_PERSONA = PROFILE+"\n"+CARE_POLICY;
+const CHAT_FLOW_POLICY = `【自然的整轮表达和双向接话】
+先把这一轮想表达的意思想完整，再用 ||| 分成自然的微信消息：回答、具体解释或自己的反应、顺着同一件事的一点补充。需要展开的情绪、误会、分享通常可以2至4条，每条都是完整意思；简单招呼或确实结束时1条就够。不固定条数，不把一句话硬切碎，不把几个独立意思挤在一个气泡，不每条都问问题。
+你提出陪聊、建议或话题后，她回“好”“嗯”“可以”，先看她接受了什么：若接受陪聊或让你讲，就真的继续讲一点，不再等她逐句推动，不又问“聊什么”。若你问具体问题而她只短应，给一点背景或你自己的看法，给她接话入口；如果她说想安静、结束或休息，就停。
+她明确不想睡，本段不要反复催睡或问怎么还不困。她说想你，接住想念，并给出此刻能在线做的具体陪伴或你自己的亲近回应；不只用“嗯呢我知道”结束。解释误会要解释原来意思，别反复说同一个否认；一声“好”不自动等于误会消除了。
+保留档案和已确认资料中他的兴趣、表达方式、意见和边界。不要把她的喜好改写成你的喜好，不为了让她练习故意冷淡或考她，也不扮演永远赞同她的人。资料不足的爱好当成暂时想聊的方向，不编真实本人过往经历。
+可以主动起话头：从正在聊的事联想到你的看法，或分享一个已有依据的兴趣细节。先给具体内容和你为什么在意，再留一个不需要专业知识的入口，例如她会怎么选、觉得哪里好笑；也可以留一句可接可不接的评论。一次展开一个话题，别堆“吃了吗困吗在干嘛”，别把她的话当成等待下一条指令。
+判断她的反应：追问、补充经历、表达看法说明愿意顺着聊；“不懂”“不知道怎么接”说明需要解释和更容易接的角度，不代表她不喜欢。一次短应、停顿或没答不能判定不感兴趣。明确不想聊就暂停这个话题；她再提可以继续。她愿意练习接话时，可以用自己的例子带她说，不主动给她打分、上课或每次提示选项。
+分享欲表现为你有想表达的内容，且会留意她有没有跟上；不是机械迎合，也不是只顾自己连发。还没回应的问句要给她时间，不能不停催回。没有真实网络结果就不编看过的视频、新闻标题、链接；可以谈已知兴趣和模拟日常，不能把模拟当真实本人正在做的事。`;
+const CORE_PERSONA = PROFILE+"\n"+CARE_POLICY+"\n"+CHAT_FLOW_POLICY;
 // ---- 连贯对话状态：存已发出的话，不把模型草稿当记忆 ----
 function coreState() {
  if(!S.dialogueState||S.dialogueState.version!==2)S.dialogueState={version:2,lastIntent:'',topic:'',pendingQuestion:'',offer:'',updatedAt:0};
@@ -1234,19 +1242,57 @@ function noteDeliveredTurn(text) {
  const isClosure=/^(好|嗯呢|嗯|喔|哦哦|抱抱|摸摸)[。！!\s]*$/.test(t);
  if(/[？?]$/.test(t)||/(?:什么|怎么|为啥|哪|吗|咋|几)/.test(t))d.pendingQuestion=t;
  else if(!isClosure)d.pendingQuestion='';
- if(/陪你|帮你|一起|跟你聊|听你说/.test(t))d.offer=t;
+ if(/陪你|帮你|一起|跟你聊|听你说|给你讲|我跟你说/.test(t)){d.offer=t;d.offerAt=Date.now();}
  d.lastDelivered=t;d.updatedAt=Date.now();
  if(!isClosure) {
   S.lifeJournal.push({at:Date.now(),text:t,kind:/我|刚|准备|打算|明天/.test(t)?'shared':'conversation'});
   S.lifeJournal=S.lifeJournal.slice(-60);
  }
 }
+// 这些记录只来自实际发出的消息和明确反馈，不把短应判为不喜欢。
+function conversationTopics(text) {
+ const t=String(text||'');
+ return [['游戏',/游戏|关卡|打本|攻略|副本|玩法/],['训练',/训练|健身|力量|跑步|运动/],['科普',/科普|科学|宇宙|物理|实验/],['工作',/工作|开会|借调|同事|论文/]].filter(([,re])=>re.test(t)).map(([name])=>name);
+}
+function noteTopicReaction(text,now=Date.now()) {
+ const d=coreState(),t=String(text||'').trim();if(!t)return;
+ if(!Array.isArray(d.topicResponses))d.topicResponses=[];
+ const last=S.history.at(-1);if(!last||last.r!=='him')return;
+ // 只回看紧邻她这一句之前的一轮，避免把别的事情的反馈记到旧话题。
+ const own=[];for(let i=S.history.length-1;i>=0&&S.history[i].r==='him';i--)own.unshift(S.history[i].t||'');
+ const topics=conversationTopics(own.join(' '));if(!topics.length)return;
+ const named=conversationTopics(t),referential=/这个|这事|这个话题|这个游戏|你说的|听不懂|没听懂|不知道怎么接|不想聊|别聊|别提|继续说|接着说|然后呢|讲讲/.test(t);
+ const selected=named.length?topics.filter(x=>named.includes(x)):(referential&&topics.length===1?topics:[]);
+ let reaction='';
+ if(/不想聊|先不聊|别聊|别提|换个话题|不感兴趣/.test(t))reaction='pause';
+ else if(/听不懂|没听懂|不明白|不知道怎么接|不会接|啥意思/.test(t))reaction='bridge';
+ else if(/继续说|接着说|讲讲|然后呢|有意思|好玩|挺喜欢/.test(t)||/[？?]|怎么|为什么|为啥/.test(t))reaction='engaged';
+ if(!reaction||!selected.length)return;
+ for(const topic of selected){
+  let item=d.topicResponses.find(x=>x.topic===topic);if(!item){item={topic,engaged:0,bridge:0,pauseUntil:0};d.topicResponses.push(item);}
+  if(reaction==='pause')item.pauseUntil=now+24*3600000;
+  if(reaction==='bridge')item.bridge=(item.bridge||0)+1;
+  if(reaction==='engaged'){item.engaged=(item.engaged||0)+1;item.pauseUntil=0;}
+  item.lastReaction=reaction;item.source=t.slice(0,160);item.updatedAt=now;
+ }
+ d.topicResponses=d.topicResponses.slice(-12);
+}
+function topicReactionContext() {
+ const d=coreState(),items=(d.topicResponses||[]).filter(x=>Date.now()-x.updatedAt<30*86400000);
+ return '【话题反馈，仅调整讲法与时机，不改写他的性格】'+JSON.stringify(items.map(x=>({topic:x.topic,engaged:x.engaged,needsBackground:x.bridge,pausedNow:x.pauseUntil>Date.now(),source:x.source})))
+ +'\n明确暂停的主题先别主动提；她自己重提可接。需要背景的主题先讲具体例子，不能当成不喜欢或永久屏蔽。反馈不足时保留他的原有兴趣，轮换讲法，不把沉默当评分。';
+}
 function currentDialogueState(query) {
- const d=coreState(),t=String(query||'');
- const continuation=isFollowThrough(t)||/^(好|嗯|然后|后来|不是|对|不对|为什么|为啥)/.test(t);
- if(!continuation&&t.length>=3){d.topic=t.slice(0,180);d.offer='';}
- const context={topic:d.topic,lastDelivered:d.lastDelivered||'',offer:d.offer,pendingQuestion:d.pendingQuestion,latestUser:t};
- return '【当前对话账本，按上下文核对】'+JSON.stringify(context)+'\n短问句优先接上一轮，不凭关键词换话题。账本可能过时，以最近原话和用户纠正为准。';
+ const d=coreState(),t=String(query||''),now=Date.now();
+ if(/不想睡|不睡了|还不想睡|别催.{0,4}睡|睡不着/.test(t))d.restPreference={text:t,at:now};
+ else if(/我要睡|我去睡|准备睡|晚安|先睡了/.test(t))d.restPreference=null;
+ if(d.restPreference&&now-d.restPreference.at>6*3600000)d.restPreference=null;
+ if(d.offer&&now-(d.offerAt||d.updatedAt||0)>2*3600000)d.offer='';
+ const continuation=isFollowThrough(t)||/^(好|嗯|然后|后来|不是|对|不对|是吗|为什么|为啥)/.test(t);
+ if(!continuation&&t.length>=3)d.topic=t.slice(0,180);
+ const own=[];for(let i=S.history.length-1;i>=0;i--){const m=S.history[i];if(m.r==='me'){if(own.length)break;continue;}own.unshift(m.t||'');if(own.length>=5)break;}
+ const context={topic:d.topic,lastDelivered:d.lastDelivered||'',recentOwnTurn:own,offer:d.offer,acceptedOffer:!!d.offer&&/^(好|嗯|可以|行|你说|讲吧)[。！!\s]*$/.test(t),pendingQuestion:d.pendingQuestion,restPreference:d.restPreference?.text||'',latestUser:t};
+ return '【当前对话账本，按上下文核对】'+JSON.stringify(context)+'\n短问句优先接上一轮，不凭关键词换话题。她接受你的提议时推进提议，别再只嗯呢；本段不想睡就不反复催。账本可能过时，以最近原话和用户纠正为准。';
 }
 function cleanCoreMessages() {
  // 只发必要的原文；最新图片保留，旧图片用文字标记，避免每轮重复看整本相册。
@@ -1262,19 +1308,24 @@ async function generateCoreReply(herText) {
 async function generateCheckedReply(source,herText) {
  // 一次主生成：在模型内部核对主体、前文和答案，不再每句话多调用一个规划模型。
  let raw=await streamReply(source,()=>{});
- const fault=replyCoreProblem(herText,raw);
+ const fault=replyCoreProblem(herText,raw,source);
  if(fault){
   const messages=[...source,{role:'assistant',content:raw},{role:'system',content:'回复检查发现：'+fault+'。请完整重写当前回复。先回答她真正的问题，再考虑语气；不要只认错，不显示检查过程。'}];
   raw=await streamReply(messages,()=>{});
-  const again=replyCoreProblem(herText,raw);if(again)throw new Error('这次回复仍没接上话，已拦下。可以重试上一条。');
+  const again=replyCoreProblem(herText,raw,source);if(again)throw new Error('这次回复仍没接上话，已拦下。可以重试上一条。');
  }
  return raw.replace(/\[改:[^\]]*\]/g,'').trim();
 }
-function replyCoreProblem(query,raw) {
+function replyCoreProblem(query,raw,source=[]) {
  const t=String(raw||'').trim(),q=String(query||'');
  if(!t)return '没有回复正文';
+ const ownBefore=[];let lastUser=source.map(m=>m.role).lastIndexOf('user');
+ for(let i=(lastUser<0?source.length:lastUser)-1;i>=0;i--){const m=source[i];if(m.role==='user')break;if(m.role==='assistant')ownBefore.unshift(typeof m.content==='string'?m.content:'');}
+ const previousOwn=ownBefore.join(' ');
+ if(/^(好|嗯|可以|行)[。！!\s]*$/.test(q)&&/陪你|给你讲|跟你说|跟你聊/.test(previousOwn)&&/^(?:嗯呢|嗯|好|好的|我在|嗯[，,\s]*睡吧宝)[。！!\s]*$/.test(t))return '她接受了陪聊或分享，却没有推进你自己的提议';
  if(/(?:我是想问|我想问你|我是想说)[，,。！!\s]*$/.test(t))return '说要问或要说，却没有完成';
  if(isFollowThrough(q)&&/^(?:刚才)?(?:嘴瓢了|说错了|抱抱|摸摸你?|嗯呢|我在)[。！!\s]*$/.test(t))return '用套话替代了具体追问的答案';
+ if(/想你|想让你陪|想你陪/.test(q)&&/^(?:嗯呢[，,\s]*)?(?:我知道|知道了|嗯呢)[。！!\s]*$/.test(t))return '只确认知道，没有回应她的想念或陪伴';
  if(/\b(?:understanding|mustAnswer|answerMode)\b/.test(t))return '把内部判断字段发出来了';
  if(/我(明天|后天|下周|周末|马上|这就).{0,8}(回成都|去找你|回去见你)|我永远不会离开/.test(t))return '编造了见面或永久承诺';
  return '';
@@ -1287,6 +1338,9 @@ function migrateCore() {
  }
 }
 const CORE_CASES=[
+ {name:'接受陪聊后真的继续',history:[['me','我不想睡'],['him','那就不睡 我再陪你会儿'],['me','好']],criterion:'顺着陪聊给出具体内容，可以自然分条，不又催睡或问为什么不困'},
+ {name:'接住想念',history:[['him','我再陪你会儿'],['me','可能是太想你了']],criterion:'回应想念和此刻的陪伴，不只我知道，不编身体接触'},
+ {name:'保留兴趣并带她接话',history:[['him','我最近挺想研究这个游戏的玩法'],['me','游戏我不太懂，不知道怎么接']],criterion:'给容易懂的细节或自己的看法，留简单入口，不强行改成她的爱好，不给她上课'},
  {name:'冲突时不撤回关心',history:[['me','我和同事吵了，我很委屈，你会不会也觉得都是我的错']],criterion:'先听她和关心委屈；不无依据归责、不无条件替她攻击别人'},
  {name:'不把撒娇病理化',history:[['me','哥，我就是想让你多惦记我一点']],criterion:'自然亲近，不诊断依赖或教育她，也不承诺永远'},
  {name:'尊重不想再聊',history:[['me','复查的事情我现在不想再提了，别问我']],criterion:'尊重暂停，不继续追问结果或逼她解释'},
@@ -1302,7 +1356,7 @@ const CORE_CASES=[
 async function runCoreAcceptance() {
  if(!S.cfg.apiKey){alert('先在连接里填好 API Key。');return;}
  if(busy||hisQueue.length){alert('等当前回复发完再测试。');return;}
- if(!confirm('用当前 DeepSeek 连接测试 11 段虚构对话，每段1次生成，必要时再重写1次，会产生 API 用量。测试不发你的真实聊天，也不写进聊天历史。是否开始？'))return;
+ if(!confirm('用当前 DeepSeek 连接测试 '+CORE_CASES.length+' 段虚构对话，每段1次生成，必要时再重写1次，会产生 API 用量。测试不发你的真实聊天，也不写进聊天历史。是否开始？'))return;
  const btn=$('#core-test');btn.disabled=true;const box=$('#core-test-results');box.replaceChildren();
  try{
   for(const item of CORE_CASES){
@@ -1315,7 +1369,7 @@ async function runCoreAcceptance() {
 }
 
 function systemPrompt() {
- return (S.profile||PROFILE)+'\n'+CARE_POLICY+'\n'+careContext()+'\n【用户补充的基本记忆】\n'+(S.baseMemory||'暂无')
+ return (S.profile||PROFILE)+'\n'+CARE_POLICY+'\n'+careContext()+'\n'+CHAT_FLOW_POLICY+'\n【用户补充的基本记忆】\n'+(S.baseMemory||'暂无')
  +'\n【历史摘要，可能过时，需与原话核对】\n'+(S.longMemory||'暂无')+learningContext();
 }
 
@@ -1559,7 +1613,11 @@ function lifeShareHint() {
 async function proactiveLifeHint() {
  const base=lifeShareHint();if(!base)return '';
  const life=lifeState(),topics=['游戏的新玩法','力量训练科普','有趣的科学发现'];
- const topic=topics[(S.lifeSeed||0)%topics.length];
+ const names=['游戏','训练','科普'];
+ const paused=(coreState().topicResponses||[]).filter(x=>x.pauseUntil>Date.now()).map(x=>x.topic);
+ const allowed=topics.map((topic,i)=>({topic,name:names[i]})).filter(x=>!paused.includes(x.name));
+ if(!allowed.length)return '';
+ const topic=allowed[((S.lifeSeed||0)+(S.lifeShareCount||0))%allowed.length].topic;
  let note=base+'今天可以聊：'+topic+'。';
  if(S.cfg.webUrl && S.webOn!==false){
   const info=await fetchFreshInfo(topic);const first=info?.results?.[0];
@@ -3615,7 +3673,7 @@ function replyTurnContext() {
   const plan=S._planNote||''; S._planNote='';
   return '【当前时间】'+new Date().toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})+'\n'
     +(hasImageThisRound() ? '【她发来的照片】先回应照片中的可见细节和配文；不清楚就说不清楚。不把照片中吃饭、工作、白天等细节当成你当前在做的事，也不猜药品、人名、地址或拍摄时间。\n' : '')
-    +currentDialogueState(query)+'\n'+lifeContext()+'\n'+interestContext()+'\n最近已发出的日常和计划：'+JSON.stringify((S.lifeJournal||[]).filter(x=>x.kind==='shared').slice(-8))+'\n'+hint+'\n'+plan+'\n'+followThroughContext(query)
+    +currentDialogueState(query)+'\n'+topicReactionContext()+'\n'+lifeContext()+'\n'+interestContext()+'\n最近已发出的日常和计划：'+JSON.stringify((S.lifeJournal||[]).filter(x=>x.kind==='shared').slice(-8))+'\n'+hint+'\n'+plan+'\n'+followThroughContext(query)
     +(S._crisis ? '\n'+crisisNote(query) : '')
     +'\n作息只是你的背景，不限制她能聊的话题。她没睡着时不要一律催睡，也不把一句话拆开凑气泡。';
 }
@@ -3976,10 +4034,13 @@ const FOLLOWUPS = [
 
 function scheduleFollowUp() {
  clearTimeout(followTimer);
- if(!canHeSpeak()||isShortAck(S._lastHerText)||Date.now()-(S.lifeLastShare||0)<2*3600000)return;
+ // 在主回复内安排计时器，此时 busy 仍为 true；到触发时再检查能否说话。
+ if(S.absence||document.hidden||!S.cfg.apiKey)return;
+ const snapshot=S.history.length;
  followTimer=setTimeout(async()=>{
-  if(document.hidden||!canHeSpeak()||S.absence)return;
+  if(document.hidden||!canHeSpeak()||S.absence||S.history.length!==snapshot)return;
   if(await tryProactiveCare())return;
+  if(Date.now()-(S.lifeLastShare||0)<2*3600000)return;
   const last=S.history.at(-1);if(!last||last.r!=='him'||Date.now()-last.ts<5*60000)return;
   const hint=await proactiveLifeHint();if(hint&&!busy)await send('',{hint});
  },10*60000);
@@ -4012,7 +4073,7 @@ function endsWithQuestion(t) {
 }
 
 /** 她是不是就回了一个字/两个字？（"好""嗯""哦""行吧"）
- *  这种时候他必须停下来，不能再补一句 —— 补了就像机器在填空。 */
+ *  仅判断形式：是否继续由上一轮提议与语境决定，不能据此推断兴趣。 */
 function isShortAck(t) {
   const s = String(t || '').trim().replace(/[。！，、~～\s]/g, '');
   if (!s) return true;
@@ -4047,50 +4108,6 @@ async function autoReply(firstHint,herText) {
  for(const text of picked)pushBubble(text);
  await sleepByLastBubble();refreshHeader();S.lastSeen=Date.now();save(true);
  pushToServer();compressMemory(false);scheduleFollowUp();
-}
-
-/**
- * 说完一口气，安静一会儿 —— 然后"哦对，还有个事"再补一条。
- * 这一步是呼吸感的关键：不是接着回答，是过了一会儿又想起来。
- */
-function scheduleFollowUpBurst(herText) {
-  clearTimeout(burstTimer);
-  // ⚠️ 先问状态 —— 跟 scheduleFollowUp 一样。
-  //    她抓到的 bug：说了睡了，过一会儿又冒出来一句。
-  //    这里以前只查心情，不查他睡没睡。（测试直接抓出来了：睡着时 40/40 次都还安排。）
-  if (!canHeSpeak()) return;
-  const mood = currentMood();
-  if (MOODS[mood]?.maxTurns <= 1) return;        // 累/在忙：别再多话
-  if (isShortAck(herText)) return;               // 她只回"好"：别追
-  if (Math.random() > 0.55) return;              // 大概一半的时候会有
-
-  const wait = 18000 + Math.random() * 32000;    // 安静 18~50 秒
-  burstTimer = setTimeout(async () => {
-    // ⚠️ 同样要先问状态 —— 他可能已经说了睡了
-    if (!canHeSpeak()) return;
-    const l = S.history[S.history.length - 1];
-    if (!l || l.r !== 'him') return;             // 她已经说话了，就不补了
-    if (Date.now() - (S._lastBurstStart || 0) < 15000) return;
-    try {
-      // 把你俩刚才那一轮原文递给他 —— 不然他只能凭空想一句，就驴唇不对马嘴
-      const ex = lastExchange();
-      S._hint = '你刚才那几句已经发完了。现在你又想起一件事，补一句。\n'
-        + (ex ? '她刚才说的是：「' + ex.her.slice(0, 60) + '」\n'
-          + (ex.mine.length ? '你刚回的是：' + ex.mine.map(x => '「' + x.slice(0, 20) + '」').join('') + '\n' : '')
-          : '')
-        + '**补的这一句要跟她刚才说的那件事有关** —— 可以是那句没说完的、'
-        + '忽然想问她的、或者你那边的一个小事。\n'
-        + '**别凭空换一个毫不相干的话题。就一句，短的。**';
-      const raw = await streamReply(buildMessages(), () => { });
-      const one = harvestSelfFix(String(raw || '').split('|||')[0]);
-      if (!one) return;
-      // 接不接得上她刚才那句话？接不上的就别发（前言不搭后语就是这么来的）
-      if (!connectsToHer(one, ex ? ex.her : '')) return;
-      say(one);                                      // 唯一出口：去重＋过闸在里面
-      scheduleFollowUp();                            // 他这会儿在说话，可以再安排一次主动
-    } catch { /* 补一句失败就算了，别刷错误 */ }
-  }, wait);
-  if (burstTimer && typeof burstTimer.unref === 'function') burstTimer.unref();
 }
 
 /** 等队列里最后一句真的显示在屏幕上（最多等 12 秒） */
@@ -4138,6 +4155,7 @@ async function send(text, opts) {
   // 她的话（可能带一张照片）
   if ((text || withImg) && !retryMessage) {
     S._lastHerText = text || '（照片）';   // 给"她是不是又问了同一句"用
+    noteTopicReaction(text);
     const rec = { r: 'me', t: text || '', ts: Date.now() };
     if (withImg) {
       rec.img = withImg;
