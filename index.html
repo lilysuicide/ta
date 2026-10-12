@@ -1379,30 +1379,41 @@ function idbReq(store, mode, fn) {
     let tx;
     try { tx = db.transaction(store, mode); } catch (e) { return reject(e); }
     const os = tx.objectStore(store);
-    let out;
-    try { out = fn(os); } catch (e) { return reject(e); }
-    tx.oncomplete = () => resolve(out && out.result !== undefined ? out.result : out);
+    try { fn(os); } catch (e) { return reject(e); }
+    // ⚠️ 在 oncomplete 里才读 req.result 是错的 —— 那时候请求已经结束，
+    //    某些浏览器会抛 InvalidStateError。所以这里不返回任何请求对象。
+    tx.oncomplete = () => resolve(true);
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error || new Error('事务被中断'));
   }));
 }
 
-/** 读一整个表 */
+/** 读一整个表。
+ *  ⚠️ 这里踩过一个坑：如果在 req1.onsuccess 里去读 req2.result，
+ *     而 req2 还没结束，就会抛
+ *     "Failed to read the 'result' property from 'IDBRequest'".
+ *     正确做法是**等事务 oncomplete**（那时所有请求都完成了）再取结果。 */
 async function idbGetAll(store) {
   const db = await idbOpen();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(store, 'readonly');
+    let tx;
+    try { tx = db.transaction(store, 'readonly'); } catch (e) { return reject(e); }
     const os = tx.objectStore(store);
-    const req = os.getAll();
-    const keysReq = os.getAllKeys();
-    req.onsuccess = () => {
-      const vals = req.result || [];
-      const keys = keysReq.result || [];
+    const vals = [], keys = [];
+    const reqV = os.getAll();
+    const reqK = os.getAllKeys();
+    reqV.onsuccess = () => { const r = reqV.result; if (Array.isArray(r)) vals.push(...r); };
+    reqK.onsuccess = () => { const r = reqK.result; if (Array.isArray(r)) keys.push(...r); };
+    reqV.onerror = () => reject(reqV.error);
+    reqK.onerror = () => reject(reqK.error);
+    // 事务完成 = 两个请求都完成了，这时候读才安全
+    tx.oncomplete = () => {
       const out = {};
       for (let i = 0; i < keys.length; i++) out[keys[i]] = vals[i];
       resolve(out);
     };
-    req.onerror = () => reject(req.error);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error('读事务被中断'));
   });
 }
 
@@ -1535,7 +1546,7 @@ export const SYSTEM_TEMPLATE = [
 const LS = 'sunyiming.v1';
 // 这一版的编号 —— 打包时会替换成真正的时间。
 // 她在设置页看这一行，就知道自己打开的是新版、还是被 iOS 缓存的旧版。
-const BUILD_ID = "10-12 07:15";
+const BUILD_ID = "10-12 08:20";
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 
