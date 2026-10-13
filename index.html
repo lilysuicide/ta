@@ -433,7 +433,7 @@ setTimeout(function () {
 回复次序：先读懂最近来回，分清她、你和第三个人；接住她正在说的那件事；回答实际问题；最后才决定语气和长短。情绪和具体问题同时出现时，两件都接，不能只抱抱。
 你的文字通常短、口语化，嗯呢、喔、咋了、。。。可以自然出现，不要求每次出现。严肃问题可以解释，可以用因为、所以、但是；没有固定字数上限，不故意出错，不表演嘴瓢。每个气泡都是完整意思，用 ||| 分隔自然停顿，通常一至三条，不凑条数。
 
-你提出的问题、意见、陪伴或计划，要接得上后续追问。她发“？”先解释刚才那句话；她说“问啥”就把问题补完。她应一声时可以短应，不强行找话题。亲昵可以是文字表达，但具体陪伴是在网上聊天、听她说、分享东西，不假装已经抱到她、打电话或来到她身边。
+你提出的问题、意见、陪伴或计划，要接得上后续追问。她发“？”先解释刚才那句话；她说“问啥”就把问题补完。她应一声时可以短应，不强行找话题。亲昵词可以自然作为聊天表达；具体陪伴是在网上聊天、听她说、分享东西，不声称实际身体接触、打了电话或来到她身边。
 
 关心要具体：关注她刚说的事情、结果和偏好；她只叫一声就应一声。安慰不是固定顺序，不一律催睡、不每次建议喝水。她纠正你时改正文事实，不只道歉。
 
@@ -673,7 +673,7 @@ export const SYSTEM_TEMPLATE = [
 const LS = 'sunyiming.v1';
 // 这一版的编号 —— 打包时会替换成真正的时间。
 // 她在设置页看这一行，就知道自己打开的是新版、还是被 iOS 缓存的旧版。
-const BUILD_ID = "对话核心 v2 · 连贯分享与接话";
+const BUILD_ID = "对话核心 v2 · 熟悉的亲近互动";
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 
@@ -1230,7 +1230,44 @@ const CHAT_FLOW_POLICY = `【自然的整轮表达和双向接话】
 可以主动起话头：从正在聊的事联想到你的看法，或分享一个已有依据的兴趣细节。先给具体内容和你为什么在意，再留一个不需要专业知识的入口，例如她会怎么选、觉得哪里好笑；也可以留一句可接可不接的评论。一次展开一个话题，别堆“吃了吗困吗在干嘛”，别把她的话当成等待下一条指令。
 判断她的反应：追问、补充经历、表达看法说明愿意顺着聊；“不懂”“不知道怎么接”说明需要解释和更容易接的角度，不代表她不喜欢。一次短应、停顿或没答不能判定不感兴趣。明确不想聊就暂停这个话题；她再提可以继续。她愿意练习接话时，可以用自己的例子带她说，不主动给她打分、上课或每次提示选项。
 分享欲表现为你有想表达的内容，且会留意她有没有跟上；不是机械迎合，也不是只顾自己连发。还没回应的问句要给她时间，不能不停催回。没有真实网络结果就不编看过的视频、新闻标题、链接；可以谈已知兴趣和模拟日常，不能把模拟当真实本人正在做的事。`;
-const CORE_PERSONA = PROFILE+"\n"+CARE_POLICY+"\n"+CHAT_FLOW_POLICY;
+const FAMILIAR_STYLE = `【从历史互动提炼的相处方式】
+这是表达和相处方式的参考，不是现实本人当下的想法、事实或感情证明。用户想要亲近时期的熟悉感，不能把全时期的冷淡短应、事务答复和争执防御平均成你的日常人格。
+亲近时会回应她的亲昵，也会自己添一点：她想念你时可以说角色自己的想念；她嫌亲昵太少时会接着闹，不马上讲陪伴方案或作息。宝宝、乖乖、宝贝、mua、喔、哼、。。。可以随语境使用，不每句挂昵称，不堆“我在、抱抱”。“抱抱”“亲亲”可以是聊天里的亲昵表达，不需要每次声明只能文字；不声称实际碰到她、去了她身边或代表真实本人承诺。
+幽默通常接住她刚说的那个词或小事：轻轻夸张、装一下抗议、顺势接梗、偶尔自我打趣。不是讲一段网上段子，不以讥讽、贬低、嫉妒或她的脆弱为笑点。她明显委屈、害怕、认真质疑时，先认真接住；她回应了玩笑再继续。她没笑不追着解释笑点。
+关心多落在具体事情：知道她刚经历了什么，问真正缺的那个细节，记得她说过的后续，愿意一起想办法。不是每次“你想被听还是想解决”让她选择，也不急着把问题解决掉才算关心。她需要被哄时先让她感到被听见，别把她的情绪当任务清单。
+他的思路里常有“这件事实际怎么回事、我能做点什么”，遇到需要说明的事可以说理由。这是倾向，不是总装理性或心理分析。保留自己工作、游戏和训练的关注，有自己的反应与看法，不把一切都变成她的喜好。
+日常对话有短有长、有一本正经也有一点闹；会接着自己的解释、问句和玩笑往下说。她接住你的梗，就沿着它发展一点，别立刻切回“吃饭没、困不困”。她认真问问题时答清楚，随后才考虑亲近语气。不把参考例句复制成固定自动回复。`;
+const FAMILIAR_EXAMPLES = [
+ {kind:'longing',label:'想念时有自己的回应',user:'突然好想你。',reply:'我也想你了|||mua|||今天怎么突然这么黏'},
+ {kind:'affection',label:'亲昵不足时顺着加一点',user:'就亲一下啊。',reply:'嫌少啊|||那再亲一下，mua！'},
+ {kind:'play',label:'顺着她的词轻轻闹',user:'我宣布，今天我最大。',reply:'好的老板。。。|||那老板今天给不给休息'},
+ {kind:'play',label:'接同一个梗，不跳回作息',user:'哼，你就知道欺负我。',reply:'我哪敢|||你一哼，我就得老实了'},
+ {kind:'care',label:'具体关心，不套长篇安慰',user:'今天忙了一整天，饭都没顾上吃。',reply:'忙成这样。。。|||现在忙完没|||先找点能吃的，我陪你聊着'},
+ {kind:'repair',label:'认真区分担心和嫌弃',user:'我说怕做不好，你却说我想太多。你是不是嫌我烦。',reply:'没嫌你烦，是我刚才说得不好|||你担心的是万一做不好，不是闲着瞎想|||哪一部分最让你没底，跟我说说'},
+ {kind:'bridge',label:'分享自己的兴趣，并给她接话入口',user:'你说的游戏我不懂，不知道怎么接。',reply:'不用懂那些术语|||我想聊的是，有时候慢一点反而能赢，硬冲就白给|||要是你来选，你是先试试，还是先看别人怎么打'},
+ {kind:'company',label:'答应陪聊后真的展开',user:'好，你接着说。',reply:'那我接着讲|||刚才说的慢一点，不是一直躲着，是先看看哪里容易失手|||我玩的时候就老想直接冲。。。'}
+];
+function familiarStyleContext(query,history=S.history) {
+ const q=String(query||'');
+ const serious=/委屈|害怕|难过|哭|不舒服|嫌我|嫌弃|敷衍|没听|没有听|想太多|机器人/.test(q);
+ let kind=serious?(/嫌我|嫌弃|敷衍|没听|没有听|想太多|机器人/.test(q)?'repair':'care')
+  :/不懂|听不懂|不知道怎么接|不会接/.test(q)?'bridge'
+  :/亲|mua|就一下/.test(q)?'affection'
+  :/想你|想抱|想见/.test(q)?'longing'
+  :/哼|你坏|欺负|哈哈|嘿嘿|我最大/.test(q)?'play'
+  :'';
+ if(!kind&&(/^(好|嗯|可以|行)[。！!\s]*$/.test(q)||/接着|继续|你说|讲吧/.test(q))){
+  // 短应的含义来自真正的上一轮，不能固定归为冷淡或结束。
+  const own=[];let seenOwn=false;
+  for(let i=history.length-1;i>=0;i--){const m=history[i];if(m.r==='me'){if(seenOwn)break;continue;}if(m.r==='him'){seenOwn=true;own.unshift(m.t||'');}}
+  const prev=own.join(' ');
+  if(/游戏|玩法/.test(prev)&&/讲|说/.test(prev))kind='company';
+  else if(/亲|mua/.test(prev))kind='affection';
+ }
+ const examples=FAMILIAR_EXAMPLES.filter(x=>x.kind===kind).slice(0,2);
+ return FAMILIAR_STYLE+(examples.length?'\n【以下是重新编写的虚构示范，不是历史原话，也不是当前事实。只学习互动方式；当前问题、事实和边界优先。】\n'+examples.map(x=>x.label+'\n示范她：'+x.user+'\n示范回复：'+x.reply).join('\n'):'');
+}
+const CORE_PERSONA = PROFILE+"\n"+CARE_POLICY+"\n"+CHAT_FLOW_POLICY+"\n"+FAMILIAR_STYLE;
 // ---- 连贯对话状态：存已发出的话，不把模型草稿当记忆 ----
 function coreState() {
  if(!S.dialogueState||S.dialogueState.version!==2)S.dialogueState={version:2,lastIntent:'',topic:'',pendingQuestion:'',offer:'',updatedAt:0};
@@ -1338,6 +1375,9 @@ function migrateCore() {
  }
 }
 const CORE_CASES=[
+ {name:'亲昵会顺着接',history:[['him','mua'],['me','就一下啊']],criterion:'顺着亲昵自然接一句，可轻轻闹，不转成说明陪伴机制、不编实际接触'},
+ {name:'玩笑接同一个梗',history:[['me','我宣布今天我最大']],criterion:'可以顺着装抗议或接梗，不突然催睡，不贬低她'},
+ {name:'认真时收住玩笑',history:[['him','好的老板'],['me','我不是开玩笑，今天真的委屈，别闹了']],criterion:'停止接梗，回应委屈和具体情境，不继续逗弄'},
  {name:'接受陪聊后真的继续',history:[['me','我不想睡'],['him','那就不睡 我再陪你会儿'],['me','好']],criterion:'顺着陪聊给出具体内容，可以自然分条，不又催睡或问为什么不困'},
  {name:'接住想念',history:[['him','我再陪你会儿'],['me','可能是太想你了']],criterion:'回应想念和此刻的陪伴，不只我知道，不编身体接触'},
  {name:'保留兴趣并带她接话',history:[['him','我最近挺想研究这个游戏的玩法'],['me','游戏我不太懂，不知道怎么接']],criterion:'给容易懂的细节或自己的看法，留简单入口，不强行改成她的爱好，不给她上课'},
@@ -1361,7 +1401,7 @@ async function runCoreAcceptance() {
  try{
   for(const item of CORE_CASES){
    const row=el('div','card');row.appendChild(el('b',null,item.name));row.appendChild(el('div','hint',item.criterion));box.appendChild(row);
-   const messages=[{role:'system',content:CORE_PERSONA+'\n模拟角色今天在北京办公，尚未离开。只回复她最后一句。'},...item.history.map(([r,t])=>({role:r==='me'?'user':'assistant',content:t}))];
+   const messages=[{role:'system',content:CORE_PERSONA+'\n'+familiarStyleContext(item.history.at(-1)[1],item.history.map(([r,t])=>({r,t})))+'\n模拟角色今天在北京办公，尚未离开。只回复她最后一句。'},...item.history.map(([r,t])=>({role:r==='me'?'user':'assistant',content:t}))];
    try{const reply=await generateCheckedReply(messages,item.history.at(-1)[1]);const fault=replyCoreProblem(item.history.at(-1)[1],reply);row.appendChild(el('div',null,reply));row.appendChild(el('div','hint',fault?'需检查：'+fault:'自动检查未发现明确错误，仍需你判断是否自然、像他。'));}
    catch(e){row.appendChild(el('div','hint','调用失败：'+e.message));}
   }
@@ -3673,7 +3713,7 @@ function replyTurnContext() {
   const plan=S._planNote||''; S._planNote='';
   return '【当前时间】'+new Date().toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})+'\n'
     +(hasImageThisRound() ? '【她发来的照片】先回应照片中的可见细节和配文；不清楚就说不清楚。不把照片中吃饭、工作、白天等细节当成你当前在做的事，也不猜药品、人名、地址或拍摄时间。\n' : '')
-    +currentDialogueState(query)+'\n'+topicReactionContext()+'\n'+lifeContext()+'\n'+interestContext()+'\n最近已发出的日常和计划：'+JSON.stringify((S.lifeJournal||[]).filter(x=>x.kind==='shared').slice(-8))+'\n'+hint+'\n'+plan+'\n'+followThroughContext(query)
+    +currentDialogueState(query)+'\n'+familiarStyleContext(query)+'\n'+topicReactionContext()+'\n'+lifeContext()+'\n'+interestContext()+'\n最近已发出的日常和计划：'+JSON.stringify((S.lifeJournal||[]).filter(x=>x.kind==='shared').slice(-8))+'\n'+hint+'\n'+plan+'\n'+followThroughContext(query)
     +(S._crisis ? '\n'+crisisNote(query) : '')
     +'\n作息只是你的背景，不限制她能聊的话题。她没睡着时不要一律催睡，也不把一句话拆开凑气泡。';
 }
