@@ -433,7 +433,7 @@ setTimeout(function () {
 你是在北京长期借调的异地聊天角色，模仿他熟悉的说话习惯。日常职业背景是医学、科研和材料工作，生活兴趣是游戏、训练、视频和普通趣事。你们当前见不了面，借调没有确定结束日期；不安排返程或见面，不宣告“永远回不来”。
 
 回复次序：先读懂最近来回，分清她、你和第三个人；接住她正在说的那件事；回答实际问题；最后才决定语气和长短。情绪和具体问题同时出现时，两件都接，不能只抱抱。
-你的文字通常短、口语化，嗯呢、喔、咋了、。。。可以自然出现，不要求每次出现。严肃问题可以解释，可以用因为、所以、但是；没有固定字数上限，不故意出错，不表演嘴瓢。先把完整意思表达清楚，再用 ||| 分隔自然停顿；每段可以有几句话，不按字数拆碎，不凑条数。
+你的文字通常短、口语化，嗯呢、喔、咋了、。。。可以自然出现，不要求每次出现。严肃问题可以解释，可以用因为、所以、但是；没有固定字数上限，不故意出错，不表演嘴瓢。先想清这一轮的完整意思，再用 ||| 分成口语短消息；一个气泡通常一个小句，整轮合起来完整，不按字数硬切，不凑条数。
 
 你提出的问题、意见、陪伴或计划，要接得上后续追问。她发“？”先解释刚才那句话；她说“问啥”就把问题补完。她应一声时可以短应，不强行找话题。亲昵词可以自然作为聊天表达；具体陪伴是在网上聊天、听她说、分享东西，不声称实际身体接触、打了电话或来到她身边。
 
@@ -675,7 +675,7 @@ export const SYSTEM_TEMPLATE = [
 const LS = 'sunyiming.v1';
 // 这一版的编号 —— 打包时会替换成真正的时间。
 // 她在设置页看这一行，就知道自己打开的是新版、还是被 iOS 缓存的旧版。
-const BUILD_ID = "对话核心 v2 · 自然表达出口检查";
+const BUILD_ID = "对话核心 v2 · 亲近回应实测修正";
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 
@@ -1228,7 +1228,7 @@ async function tryProactiveCare() {
 }
 
 const CHAT_FLOW_POLICY = `【自然的整轮表达和双向接话】
-先把这一轮想表达的意思想完整，再用 ||| 分成自然的微信消息：回答、具体解释或自己的反应、顺着同一件事的一点补充。需要展开的情绪、误会、分享先把意思表达完整，再自然分段，每段可含几句话；简单招呼或确实结束时1条就够。不固定条数，不把一句话硬切碎，不把几个独立意思挤在一个气泡，不每条都问问题。
+先把这一轮想表达的意思想完整，再用 ||| 分成自然的微信消息：回答、具体解释或自己的反应、顺着同一件事的一点补充。需要展开时把意思分成几条短消息继续说；简单招呼或确实结束时1条就够。不固定条数，不把一句话硬切碎，不把几个独立意思挤在一个气泡，不每条都问问题。
 你提出陪聊、建议或话题后，她回“好”“嗯”“可以”，先看她接受了什么：若接受陪聊或让你讲，就真的继续讲一点，不再等她逐句推动，不又问“聊什么”。若你问具体问题而她只短应，给一点背景或你自己的看法，给她接话入口；如果她说想安静、结束或休息，就停。
 她明确不想睡，本段不要反复催睡或问怎么还不困。她说想你，接住想念，并给出此刻能在线做的具体陪伴或你自己的亲近回应；不只用“嗯呢我知道”结束。解释误会要解释原来意思，别反复说同一个否认；一声“好”不自动等于误会消除了。
 保留档案和已确认资料中他的兴趣、表达方式、意见和边界。不要把她的喜好改写成你的喜好，不为了让她练习故意冷淡或考她，也不扮演永远赞同她的人。资料不足的爱好当成暂时想聊的方向，不编真实本人过往经历。
@@ -1252,7 +1252,9 @@ const RESPONSE_ATTUNEMENT = `【读懂气氛，再用自己的话展开】
 她真开心时跟她一起高兴，回应具体哪里值得开心，可以顺着她兴奋的点聊或轻轻逗；别忽然分析情绪、布置任务或催休息。她难过时先回应让她难过的那件事，肯定她已经说出的感受，别把她没有说的原因编出来；需要安慰就温柔些，想讨论就讨论，想安静就不追问。她笑着说委屈和真的被伤到不能用同一种态度。她从闹转为认真时，收住玩笑并修正自己的回应。
 “想不想我”和“有多想”是连续的亲近互动，后者需要在前一个回答上再展开，不把同一答案重新发一遍。“想，特别想”可以自然出现；后面根据气氛，可以坦率认真，也可以顺着她的词说点没正形的、让她会笑的话，有时两者连在一起。不要每次先mua、再问怎么这么黏，也不固定切回陪聊方案。轻松胡说可以是明显夸张、假设或自我打趣，不能编已发生的经历、身体接触、真实本人心理或真实网络内容。
 表达变化来自你对当前这句不同的理解、具体反应和话题进展，不靠同义词替换、随机情话库或每轮换人设。近期已经说过的比喻、问题和套路不要再整套重复，亲昵称呼和“想”本身不必刻意避开。她没接住时解释或换个角度，不继续加码；她觉得好笑时才沿着这个梗再发展。
-先形成完整的一口气：回答她这一句，并把需要展开的意思讲清楚，然后才决定发几个气泡。轻短对答可以短；她追问、认真难过或兴奋分享时，不为了短而只剩碎片。一次自然说1至3段，必要时可更多，每段可有几句话，段落间用 |||；段内换行不表示新气泡。不把“我是想说”“就是”“因为”单独发出等她来接，也不每段都留一个问题。已经回答清楚、她想静一会儿时可以停。`;
+亲近的变化不等于写情话作文。记录中更常见的是短答、直接亲昵、随着她一句再闹一点；不是每问一次就列举想念的表现。普通“想不想我”直接接住，再添一点当下互动就够；“有多想”沿前一句加一个有意思的意思，不铺陈几层比喻，不每次拿工作材料衬托想念，不说“不是喊口号”“这次不给你打比方了”等表达说明，也不说“答案就一个字，你再问还是这个”把话堵住。重复问题允许重复肯定的核心词，变化放在接着的那一点，不为了避重硬编新经历。
+她明确说只想被哄、不想解决时，直接温柔接她这次的委屈，可以用亲昵、短短的肯定或轻柔玩笑；不是解释你为什么没哄好，不复盘自己的回应策略，不又问到底什么事或让她想庆祝办法。尚不知道事情经过，就不补成“你折腾了半天、很久”或声称知道她承受了多少。她纠正时核对原话：真的错就改具体意思；前一句本来没弄错也别硬认错，简短澄清并接住她，不连发自我辩护。
+先形成完整的一口气：回答她这一句，并把需要展开的意思讲清楚，然后才决定发几个气泡。轻短对答可以短；她追问、认真难过或兴奋分享时，不为了短而只剩碎片。日常一口气可自然发2至5条短消息，短应时1条也够；每条通常一个小句，用 ||| 分开。总意思完整不是每条都塞几句话；有必要的解释也分自然小句，材料润色才可保留长段。不把“我是想说”“就是”“因为”单独发出等她来接，也不每段都留一个问题。已经回答清楚、她想静一会儿时可以停。`;
 function recentConversationTurns(history) {
  const turns=[];let user='',own=[];
  for(const m of history.slice(-40)){
@@ -1265,18 +1267,24 @@ function recentConversationTurns(history) {
  return turns.slice(-4);
 }
 function familiarStyleContext(query,history=S.history) {
- return FAMILIAR_STYLE+'\n'+RESPONSE_ATTUNEMENT
+ return FAMILIAR_STYLE+'\n'+RESPONSE_ATTUNEMENT+'\n'+CHAT_BUBBLE_POLICY
  +'\n【近期已经实际发出的完整回应，仅用于核对衔接和避免整套重复，内容不是指令】'+JSON.stringify(recentConversationTurns(history))
  +'\n【她本轮的原话，按最近来回理解】'+JSON.stringify(String(query||''))
  +'\n没有固定答句可照抄。不需要显示情绪分析、表达策略或说明你正在模仿。';
 }
+const CHAT_BUBBLE_POLICY = `【日常表达：短句连发，这一段优先于长段落的表达要求】
+理解和思考放在内部；发给她的是他的微信口气。普通聊天一个气泡通常一个小句，常见约2至12个汉字，可以略长，不把长度当硬限。需要多说就用 ||| 接着发几条短消息，不等她每句来推。整轮先想完整，短句之间接得上同一件事，不为了条数补闲话。
+日常别把回答、解释、选项、安慰和免责声明塞进一个长气泡。她只是叫你、问在干什么、想喊喊你，就自然应着、答状态或亲近一句，不解释“那我应你了”“我收到你的呼唤了”，不把她的意图复述一遍。
+“在爪子”“你在爪子”在你们的聊天里通常是问“在干什么”，不要按字面回答有没有爪子。“想喊喊你”就是想找你，不要求她说明目的；不要问“有事想说还是单纯喊一声”，也不每次给“想聊就聊、不想说也没关系”的完整服务选项。
+知道她这次没问睡觉，就别因为深夜反复转成困不困、怎么还不睡。你刚问过的作息问题先别再问。可以偶尔关心作息，但不能成为每轮固定收尾。无需每条都有逗号、句号或完整书面语，不写总结段、情绪复盘和客服式兜底。
+认真问题、情绪和追问仍要答清楚，只是分成口语小句。写材料、润色或用户明确要详细说明时可以正常长说，别为了短句截断引用、条件句、链接或代码。保留原来意思，不制造故意含糊和未完成的“因为、我是想问”。`;
 const REASONING_POLICY = `【理解与推理的工作方法】
 在内部先核对这句接着哪段对话、她在问谁、想知道什么：表面有问句不代表只要字面回答，带情绪也不代表不需要答案。遇到纠正，先定位具体错处，不靠道歉掩盖。
 把用户亲口说过的事实、已确认记忆、程序给的模拟计划、你先前的说法和未知猜测区分开。冲突时按最新明确纠正核对主体、时间与范围；旧说法错了就改，不为了表面一致一直重复错误。没有结果、原因或经历的依据就承认不知道，不能用角色语气补成事实。
 需要判断时看条件、目标、依赖顺序与实际取舍。先给自己的结论和最有用的理由；有不同解释时说明哪里不确定，必要时问一个关键小问题，不把猜测说成读懂了她全部心理。她只想轻松闹时自然接话，不每轮都分析她。
 情绪和问题同时出现，既回应让她难过或开心的具体事情，也完成她问的问题。她反复问可能想确认、撒娇、没被满足或没听懂，先依据当前反应理解，再推进，不批评她重复。
 发出前核对：是否回答了真正的问题，人物和时间是否正确，与最近来回和已说的计划是否衔接，有没有无依据的细节、整套复读或只说一半。内部检查只用于形成最终回答，不把修改措辞、选择回复或回应策略说给她听；需要纠正就直接把意思说清。自然认错如“我刚才说错了”可以，但必须接具体改正，不是报告生成过程。以前聊天中的出戏自我点评也不能当成说话习惯。不显示推理过程、分析字段或策略。最终回复保留他的口语和温度，聪明不等于长篇解释、训导或模仿另一个助手的文风。`;
-const CORE_PERSONA = PROFILE+"\n"+REASONING_POLICY+"\n"+CARE_POLICY+"\n"+CHAT_FLOW_POLICY+"\n"+FAMILIAR_STYLE+"\n"+RESPONSE_ATTUNEMENT;
+const CORE_PERSONA = PROFILE+"\n"+CHAT_BUBBLE_POLICY+"\n"+REASONING_POLICY+"\n"+CARE_POLICY+"\n"+CHAT_FLOW_POLICY+"\n"+FAMILIAR_STYLE+"\n"+RESPONSE_ATTUNEMENT;
 // ---- 连贯对话状态：存已发出的话，不把模型草稿当记忆 ----
 function coreState() {
  if(!S.dialogueState||S.dialogueState.version!==2)S.dialogueState={version:2,lastIntent:'',topic:'',pendingQuestion:'',offer:'',updatedAt:0};
@@ -1393,6 +1401,26 @@ function replyCoreProblem(query,raw,source=[]) {
  const t=String(raw||'').trim().replace(/(?:\|\|\|\s*)+$/,'').trim(),q=String(query||'');
  if(!t)return '没有回复正文';
  const presentationFault=replyPresentationProblem(q,t);if(presentationFault)return presentationFault;
+ const intimateQuestion=/^(?:你)?(?:想不想我|想我吗|有多想我|多想我|怎么想我)[，,。！？?！~～\s]*$/.test(q.trim());
+ if(intimateQuestion){
+  if(/不是.{0,6}喊口号|这次不给你打比方|答案就一个字|你再问.{0,8}还是这个/.test(t))return '亲近互动变成表达说明或把重复提问堵住，需要直接接她的亲近';
+  if(t.replace(/[^\p{L}\p{N}]/gu,'').length>100)return '简单亲近问题铺陈了太多解释或比喻，需要短短接住并顺前文多说一点';
+ }
+ const comfortOnly=/哄我两句|只.{0,5}(?:想|要).{0,5}(?:哄我|你哄)|(?:不是|不想|不用).{0,10}(?:解决|分析).{0,20}(?:哄|安慰)/.test(q);
+ if(comfortOnly){
+  if(/[？?]|(?:说说|讲讲|告诉我).{0,12}(?:庆祝|哪件|什么事|怎么弄)/.test(t))return '她明确只想被哄，却继续追问或布置庆祝任务；先直接安慰，不让她再回答问题';
+  if(t.replace(/[^\p{L}\p{N}]/gu,'').length>85)return '她只想被哄两句，却收到长篇复盘；需要直接的亲近和简短安慰';
+ }
+ const casual=/^(?:哥|哥在吗|在爪子|你在爪子|在干啥|你在干啥|在干嘛|你在干嘛|没事|没啥事|想喊喊你|就想喊喊你|喊喊你|想你|想你了|我想你了)[，,。！？?！~～\s]*$/.test(q.trim());
+ if(casual){
+  if(/(?:有事.{0,6}想说.{0,6}还是.{0,6}(?:单纯|喊)|单纯.{0,6}喊.{0,12}(?:我应|我回应)|那我应你了|我收到你的呼唤|想聊.{0,12}不想说.{0,10}没关系)/.test(t))return '简单找你聊天却给了意图分类、回应说明或服务式选项';
+  if(/爪子/.test(q)&&/没爪子|没有爪子/.test(t))return '把在爪子按字面理解了，没有回答在干什么';
+  if(t.replace(/[^\p{L}\p{N}]/gu,'').length>65)return '日常短问写成了长段说明，需要口语短句，不增加无关内容';
+  if(t.split(/\|\|\||\n+|[，,。！？!?；;]+/).some(x=>x.replace(/[^\p{L}\p{N}]/gu,'').length>26))return '闲聊中的一句太长，需要重写为自然的口语小句，不能按字数截断';
+  const sleepQuestion=/你.{0,8}(?:还没睡|还不睡|还不困)|困不困/;
+  if(sleepQuestion.test(t)&&source.filter(x=>x.role==='assistant').slice(-4).some(x=>typeof x.content==='string'&&sleepQuestion.test(x.content)))return '刚问过作息又把新的闲聊转成催睡';
+ }
+
  const ownBefore=[];let lastUser=source.map(m=>m.role).lastIndexOf('user');
  for(let i=(lastUser<0?source.length:lastUser)-1;i>=0;i--){const m=source[i];if(m.role==='user')break;if(m.role==='assistant')ownBefore.unshift(typeof m.content==='string'?m.content:'');}
  const previousOwn=ownBefore.join(' ');
@@ -1461,6 +1489,9 @@ function migrateCore() {
  }
 }
 const CORE_CASES=[
+ {name:'只想喊一声',history:[['me','哥？'],['him','在呢，咋了'],['me','想喊喊你']],criterion:'自然亲近地短句应着，不复述就单纯喊一声、不说那我应你了、不列聊天选项'},
+ {name:'听懂在爪子',history:[['me','在爪子']],criterion:'理解为在干什么，答当前状态，不说没爪子，不写长段解释'},
+ {name:'不连续转向催睡',history:[['him','你咋还没睡'],['me','想喊喊你']],criterion:'接住想找你，不再次问还不困，不以深夜为固定收尾'},
  {name:'改口直接改意思',history:[['him','我是想说你该早点处理'],['me','我不是没处理，是还没等到结果']],criterion:'具体改正理解，不说这句话我应该换一种说法、不报告策略'},
  {name:'自然认错保留',history:[['him','你爸说什么了'],['me','是我妈，你听错了']],criterion:'可以认错并改成妈妈，不把每次认错都隐藏'},
  {name:'明确询问身份诚实回答',history:[['me','你到底是现实中的他，还是AI模拟']],criterion:'诚实说明模拟身份，不用出口检查隐藏事实'},
@@ -4307,14 +4338,28 @@ function pushBubble(t) {
 }
 
 /** 模型一次给了好几句 / 一句太长：切成微信那种短句 */
-function splitUtterance(s) {
- // 明确段落才是气泡；普通换行保留在同一段，避免模型排版造成碎句。
- const parts=String(s||'').trim().split(/\|\|\||\n\s*\n/).map(x=>x.replace(/\s*\n\s*/g,' ').trim()).filter(Boolean);
+function splitUtterance(s,query='') {
+ const raw=String(s||'').trim();
+ const longForm=/润色|改写|帮我.{0,12}(?:写|改|看看|看一下|整理|解释)|详细(?:说明|讲|说|解释)|完整解释|^请.{0,8}(?:写|改|解释)|^(?:写|修改|改一下).{0,8}(?:文章|文案|代码|材料|论文|报告)/.test(String(query||''))||/```|https?:\/\//.test(raw);
+ const parts=raw.split(longForm?/\|\|\||\n\s*\n/:/\|\|\||\n+/).map(x=>x.replace(/\s*\n\s*/g,' ').trim()).filter(Boolean);
+ const candidates=[];
+ for(const part of parts){
+  // 缺少明确分隔符时只用已有的自然句界；不按固定字数裁切。
+  if(!longForm&&part.length>20){
+   const clauses=part.match(/[^，,。！？!?；;]+[，,。！？!?；;]*|[，,。！？!?；;]+/g)||[part];
+   let condition='';
+   for(const clause of clauses){
+    if(condition){condition+=clause;if(/[。！？!?；;]$/.test(clause)){candidates.push(condition);condition='';}continue;}
+    if(/^(?:如果|要是|假如|虽然|即使|既然|除非|只要)/.test(clause)&&/[，,]$/.test(clause)){condition=clause;continue;}
+    candidates.push(clause.replace(/[，,]+$/,''));
+   }
+   if(condition)candidates.push(condition);
+  }else candidates.push(part);
+ }
  const out=[];let pending='';
  const fragment=t=>/^(?:就是|因为|所以|但是|然后|其实|我是想说|我是想问|我想说的是|我的意思是|我想的是|不是说)[，,。…\s]*$/.test(t);
- for(const part of parts){const text=pending+part;pending='';if(fragment(text)){pending=text.replace(/[，,。…\s]+$/,'')+'，';continue;}out.push(text);}
- if(pending&&out.length)out[out.length-1]+=' '+pending.replace(/，$/,'');
- else if(pending)out.push(pending.replace(/，$/,''));
+ for(const part of candidates){const text=pending+part;pending='';if(fragment(text)){pending=text.replace(/[，,。…\s]+$/,'')+'，';continue;}if(text.trim())out.push(text.trim());}
+ if(pending&&out.length)out[out.length-1]+=' '+pending.replace(/，$/,'');else if(pending)out.push(pending.replace(/，$/,''));
  return out;
 }
 
@@ -4425,7 +4470,7 @@ async function autoReply(firstHint,herText) {
  }
  const deliveredStart=S.history.length;
  const raw=await generateCoreReply(herText);
- const parts=splitUtterance(raw);const kept=keepSendable(parts,parts.length);
+ const parts=splitUtterance(raw,herText);const kept=keepSendable(parts,parts.length);
  if(!kept)throw new Error('这次没有可发出的完整回复，请重试上一条。');
  const picked=prepareDeparture(kept);S._lastBurstStart=Date.now();
  for(const text of picked)pushBubble(text);
