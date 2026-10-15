@@ -8,6 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="12">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="theme-color" content="#f7f7f7">
 <meta name="format-detection" content="telephone=no">
 <style>
@@ -277,6 +279,22 @@ setTimeout(function () {
       </div>
       <div class="hint">连接测试只发送一条虚构短消息，不读取聊天记录，会产生少量 API 用量。</div>
       <div class="hint" id="testResult" style="white-space:pre-wrap"></div>
+    </div>
+
+    <div class="card">
+      <h3>主动消息与锁屏通知</h3>
+      <div class="hint">需要先部署专用后台。iPhone（iOS 16.4 以上）请用 Safari 添加到主屏幕，再从图标打开。首次添加前先导出聊天备份；若新图标里没有旧记录，先导入备份再开启。日常为模拟安排，不代表现实中他的行踪。</div>
+      <label class="f" for="push-url">主动消息后台地址</label><input class="t" id="push-url" type="url" placeholder="https://你的专用后台.workers.dev">
+      <label class="f" for="push-token">连接口令（部署时生成，不是 API Key）</label><input class="t" id="push-token" type="password" autocomplete="off">
+      <div class="btnrow"><button class="b ghost" id="push-connect">连接后台</button></div>
+      <label class="f" for="push-frequency">每天主动开口上限（每次可连发1—3条）</label><select class="t" id="push-frequency"><option value="2">2次</option><option value="4">4次</option><option value="6">6次</option><option value="8">8次 · 偶尔来聊</option><option value="12" selected>12次 · 日常多聊一些</option><option value="20">20次 · 更频繁</option></select>
+      <div class="hint">默认每天最多12组，最多可选20组；有话才说，不凑次数。忙完回来的消息另外保留，正常回复不占这个额度。正在聊时不插话，不因你没回就反复追问；未读积累到所选上限时暂停新日常。</div>
+      <label class="f">安静时段（北京时间；起止相同表示关闭）</label><div style="display:flex;gap:12px"><input class="t" id="push-quiet-start" type="time" aria-label="安静时段开始" value="23:00"><input class="t" id="push-quiet-end" type="time" aria-label="安静时段结束" value="08:00"></div>
+      <label class="f"><input id="push-preview" type="checkbox"> 锁屏显示消息正文（默认只提示有新消息）</label>
+      <label class="f"><input id="push-consent" type="checkbox"> 同意将最近20条文字、角色说话风格和未来7天模拟日程同步到我的后台，用于主动消息。不会同步照片、完整微信导出或全部长期记忆。</label>
+      <div class="hint">后台生成消息会使用 DeepSeek API 额度。Key 需单独存入后台的加密配置，不会随网页发布。离线超过3天暂停新的日常分享，重新打开同步后恢复；已约定的返回仍保留。修改以上选项后再点“开启消息通知”保存。</div>
+      <div class="btnrow"><button class="b" id="push-enable">开启消息通知</button><button class="b ghost" id="push-test">测试锁屏通知</button><button class="b ghost" id="push-pause">暂停主动推送</button></div>
+      <div class="hint" id="push-status" role="status">尚未连接主动消息后台；普通聊天仍可使用。</div>
     </div>
 
     <div class="card">
@@ -677,7 +695,7 @@ export const SYSTEM_TEMPLATE = [
 const LS = 'sunyiming.v1';
 // 这一版的编号 —— 打包时会替换成真正的时间。
 // 她在设置页看这一行，就知道自己打开的是新版、还是被 iOS 缓存的旧版。
-const BUILD_ID = "对话核心 v2 · 温馨日常";
+const BUILD_ID = "对话核心 v2 · 锁屏主动消息";
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 
@@ -1224,6 +1242,7 @@ function markCareDelivered() {
  item.lastAsked=now;S.careActivity.lastAt=now;S.careActivity.count++;S._careCandidate=null;save(true);
 }
 async function tryProactiveCare() {
+ if(typeof cloudEnabled==='function'&&cloudEnabled())return false;
  if(busy||hisQueue.length||document.hidden||isAway()||isAsleep())return false;
  const hint=prepareCareHint();if(!hint)return false;
  S._suppressBusy=true;
@@ -3977,6 +3996,7 @@ function commitDeparture(t) {
  clearTimeout(followTimer);clearTimeout(burstTimer);save(true);scheduleBusyReturn();
 }
 async function resumeAbsence() {
+ if(typeof cloudEnabled==='function'&&cloudEnabled()){if(S.absence)await cloudSync();return false;}
  if(!S.absence||S.absence.due>Date.now()||busy||hisQueue.length||document.hidden)return false;
  const event=S.absence; const missed=S.history.filter(x=>x.r==='me' && x.ts>=event.leftAt);const spec=DEPARTURES[event.kind]||DEPARTURES.work;
  const delayed=Date.now()-event.due>10*60000;
@@ -4456,6 +4476,7 @@ const FOLLOWUPS = [
 ];
 
 function scheduleFollowUp() {
+ if(typeof cloudEnabled==='function'&&cloudEnabled())return;
  clearTimeout(followTimer);
  // 在主回复内安排计时器，此时 busy 仍为 true；到触发时再检查能否说话。
  if(S.absence||document.hidden||!S.cfg.apiKey)return;
@@ -4480,6 +4501,7 @@ function pushHistory(r, t, tags) {
   const rec = { r, t, ts: Date.now() };
   if (tags && tags.length) rec.tags = tags;      // 她的情绪标签，只给判断用，不显示
   S.history.push(rec);
+  if(typeof queueCloudSync==='function')queueCloudSync();
   if(r==='him'){commitDeparture(t);noteDeliveredTurn(t);noteRoutineStatement(t);markCareDelivered();}
   // 他说一句就累一点；她说的不算（累的是他）
   if (r === 'him') {
@@ -4593,6 +4615,7 @@ async function send(text, opts) {
       }
     }
     S.history.push(rec);
+    if(typeof queueCloudSync==='function')queueCloudSync();
     addRow('me', text || '', true, withImg || '');
     // 有图就让他"看一眼"再说 —— 不给提示他容易答得像没看见
     if (withImg) {
@@ -5210,6 +5233,7 @@ function catchUpHint(first) {
 }
 
 async function maybeCatchUp() {
+  if(typeof cloudEnabled==='function'&&cloudEnabled()){await cloudSync();return;}
   if (!S.cfg.apiKey) return;
   if (busy || hisQueue.length) return;
   if(await resumeAbsence())return;
@@ -5245,6 +5269,137 @@ async function maybeCatchUp() {
   await send('', { hint: catchUpHint(first) + (lifeHint ? '\n' + lifeHint : '') });
 }
 
+// ---------------- 锁屏主动消息（独立于聊天备份和旧同步配置） ----------------
+const PUSH_CONFIG_KEY=LS+'.push';
+let pushConfig={url:'',token:'',publicKey:'',enabled:false,dailyMax:12,quietStart:1380,quietEnd:480,preview:false};
+let cloudFlight=null,cloudTimer=null,cloudRegistration=null,cloudDurableIds=new Set();
+function cloudEnabled(){return pushConfig.enabled&&!!pushConfig.url&&!!pushConfig.token;}
+function cloudStatus(text){const e=$('#push-status');if(e)e.textContent=text;}
+function savePushConfig(){localStorage.setItem(PUSH_CONFIG_KEY,JSON.stringify(pushConfig));}
+async function cloudRequest(path,body,options={}){
+ const r=await fetch(pushConfig.url+path,{method:body===undefined?'GET':'POST',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(12000),
+ headers:{Authorization:'Bearer '+pushConfig.token,...(body===undefined?{}:{'Content-Type':'application/json'})},...options,...(body===undefined?{}:{body:JSON.stringify(body)})});
+ const data=await r.json();if(!r.ok)throw new Error(data.error||'后台连接失败');return data;
+}
+function cloudContext(){
+ const today=routineKey(),plans=[];for(let n=0;n<7;n++)plans.push(routineDay(routineAdd(today,n)));
+ return {name:S.hisName,seed:routineStore().seed,style:String(S.profile||PROFILE).slice(0,5000),plans,
+  absence:S.absence?{id:S.absence.id,kind:S.absence.kind,due:S.absence.due,notice:S.absence.notice}:null,
+  recent:S.history.filter(m=>m.t&&['me','him'].includes(m.r)).slice(-20).map(m=>({r:m.r,t:String(m.t).slice(0,300),ts:m.ts}))};
+}
+async function mergeCloudMessages(messages){
+ if(busy||hisQueue.length)return;
+ let changed=false;
+ for(const m of messages||[]){
+  if(typeof m.id!=='string'||!Array.isArray(m.parts)||!Number.isFinite(m.ts))continue;
+  if(!S.history.some(x=>x.cloudId===m.id)){
+   const parts=m.parts.filter(t=>typeof t==='string'&&t.trim()).slice(0,3);
+   for(let n=0;n<parts.length;n++){
+    const rec={r:'him',t:parts[n],ts:m.ts+n,cloudId:m.id,cloudKind:m.kind};
+    // Inserting an older cloud message must not move the compression boundary backwards.
+    const at=S.history.findIndex(x=>x.ts>rec.ts);
+    if(at<0)S.history.push(rec);else{S.history.splice(at,0,rec);if(at<S.memFrom)S.memFrom++;}
+    if(rec.ts>=(S.history.at(-1)?.ts||0))noteDeliveredTurn(rec.t);
+    const plan=routineDay(routineKey(m.ts));plan.notes.push({at:m.ts,text:rec.t});plan.notes=plan.notes.slice(-12);
+   }
+   changed=true;
+  }
+  if(m.absenceId&&S.absence?.id===m.absenceId){S.absence=null;S.busyUntil=0;S.asleepAt=0;S.busyLastAt=m.ts;S._awayAnnounced=false;changed=true;}
+ }
+ // Acknowledge only after durable storage; a failed write can safely be retried.
+ if(messages?.length){
+  if(idbReady)await saveState(stripImages());
+  else localStorage.setItem(LS,JSON.stringify(stripImages()));
+  for(const m of messages)if(S.history.some(x=>x.cloudId===m.id))cloudDurableIds.add(m.id);
+  save(true);
+ }
+ if(changed){renderAll();refreshHeader();}
+}
+async function cloudSync(){
+ if(!cloudEnabled())return false;
+ if(cloudFlight)return cloudFlight;
+ cloudFlight=(async()=>{
+  try {
+   const lastUser=S.history.filter(m=>m.r==='me').at(-1);
+   const active=!document.hidden&&(busy||hisQueue.length>0||Date.now()-(lastUser?.ts||0)<2*60000);
+   const result=await cloudRequest('/sync',{context:cloudContext(),clientAt:Date.now(),ack:[...cloudDurableIds].slice(-500),active});
+   await mergeCloudMessages(result.messages);
+   if(!result.enabled){pushConfig.enabled=false;savePushConfig();cloudStatus(result.lastError||'后台已暂停，请重新开启通知。');return false;}
+   cloudStatus(result.lastError||'主动消息已开启；安静时段会保留消息，稍后再提醒。');return true;
+  }catch(e){cloudStatus('主动消息同步未完成：'+(e.message||'请检查网络')+'。已保存的聊天不会删除。');return false;}
+ })().finally(()=>{cloudFlight=null;});return cloudFlight;
+}
+function queueCloudSync(){if(!cloudEnabled())return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>cloudSync(),1200);}
+function flushCloudOnHide(){
+ if(!cloudEnabled())return;
+ const context=cloudContext();context.plans=context.plans.slice(0,3);
+ context.style=context.style.slice(0,2500);context.recent=context.recent.slice(-12);
+ // keepalive continues after the tab is suspended, subject to browser/network limits.
+ cloudRequest('/sync',{context,clientAt:Date.now(),active:false,ack:[...cloudDurableIds].slice(-100)},{keepalive:true}).catch(()=>{});
+}
+function pushPrefs(){
+ const value=id=>{const [h,m]=$('#'+id).value.split(':').map(Number);return h*60+m;};
+ return {dailyMax:Number($('#push-frequency').value),quietStart:value('push-quiet-start'),quietEnd:value('push-quiet-end'),preview:$('#push-preview').checked};
+}
+async function registerCloudWorker(){
+ if(!('serviceWorker'in navigator)||!('PushManager'in window))throw new Error('请用支持通知的浏览器；iPhone 请先添加到主屏幕，再从图标打开。');
+ await navigator.serviceWorker.register('./sw.js',{scope:'./'});
+ return await Promise.race([navigator.serviceWorker.ready,new Promise((_,reject)=>setTimeout(()=>reject(new Error('通知组件尚未就绪，请确认 sw.js 已上传')),10000))]);
+}
+async function initCloudPush(){
+ try{const c=JSON.parse(localStorage.getItem(PUSH_CONFIG_KEY)||'{}');pushConfig={...pushConfig,...c};}catch{}
+ cloudDurableIds=new Set(S.history.map(m=>m.cloudId).filter(Boolean));
+ $('#push-url').value=pushConfig.url;$('#push-token').value=pushConfig.token;
+ $('#push-frequency').value=String(pushConfig.dailyMax);$('#push-preview').checked=pushConfig.preview;
+ const clock=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+ $('#push-quiet-start').value=clock(pushConfig.quietStart);$('#push-quiet-end').value=clock(pushConfig.quietEnd);
+ $('#push-consent').checked=pushConfig.enabled;
+ $('#push-connect').onclick=async()=>{
+  try{
+   const raw=$('#push-url').value.trim().replace(/\/+$/,''),u=new URL(raw);
+   if(u.protocol!=='https:'||u.pathname!=='/'||u.username||u.password||u.search||u.hash)throw new Error('请填写 HTTPS 后台根地址，不带路径。');
+   if(cloudEnabled()&&raw!==pushConfig.url)throw new Error('请先暂停原后台，再更换地址。');
+   const token=$('#push-token').value.trim();if(token.length<32)throw new Error('请填写部署时生成的连接口令，不是 DeepSeek Key。');
+   pushConfig.url=raw;pushConfig.token=token;const info=await cloudRequest('/config');
+   const app=new URL(info.appUrl),here=new URL('./',location.href);
+   if(app.origin!==here.origin||app.pathname!==here.pathname)throw new Error('后台的网站地址与当前页面不一致，请核对部署设置。');
+   pushConfig.publicKey=info.publicKey;pushConfig.frequencyVersion=info.frequencyVersion||1;savePushConfig();cloudRegistration=await registerCloudWorker();
+   cloudStatus('后台已连接。勾选下方说明后，点击“开启消息通知”。');
+  }catch(e){cloudStatus(e.message||'连接失败');}
+ };
+ $('#push-enable').onclick=async()=>{
+  try{
+   if(!pushConfig.publicKey||!cloudRegistration)throw new Error('请先点“连接后台”。');
+   if(!$('#push-consent').checked)throw new Error('请先阅读并勾选下方同步说明。');
+   // Call within the click gesture, before any fetch, as iOS requires.
+   const permission=await Notification.requestPermission();
+   if(permission!=='granted')throw new Error('通知未获允许，可在 iPhone 设置 → 通知中调整。');
+   const key=Uint8Array.from(atob(pushConfig.publicKey.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+   const sub=await cloudRegistration.pushManager.getSubscription()||await cloudRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
+   const prefs=pushPrefs();if(prefs.dailyMax>6&&pushConfig.frequencyVersion!==2)throw new Error('云端还是旧频率版本，请先完成后台更新，再开启较高频率。');
+   await cloudRequest('/subscribe',{subscription:sub.toJSON(),settings:prefs});
+   Object.assign(pushConfig,prefs,{enabled:true});savePushConfig();clearTimeout(followTimer);clearTimeout(burstTimer);
+   await cloudSync();
+  }catch(e){cloudStatus(e.message||'开启失败');}
+ };
+ $('#push-test').onclick=async()=>{try{const result=await cloudRequest('/test',{});cloudStatus(result.note);}catch(e){cloudStatus(e.message||'测试失败');}};
+ $('#push-pause').onclick=async()=>{
+  try{
+   await cloudSync();await cloudRequest('/pause',{});pushConfig.enabled=false;savePushConfig();
+   const reg=cloudRegistration||await navigator.serviceWorker.getRegistration('./');const sub=await reg?.pushManager.getSubscription();if(sub)await sub.unsubscribe();
+   cloudStatus('已暂停主动推送，云端近期对话与日程已清除；本地聊天保留。');
+  }catch(e){cloudStatus('尚未确认后台暂停：'+(e.message||'连接失败')+'。请恢复连接后再点暂停。');}
+ };
+ if(cloudEnabled()){
+  await cloudSync();registerCloudWorker().then(r=>cloudRegistration=r).catch(e=>cloudStatus(e.message));
+ }
+ navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='TA_PUSH')cloudSync();});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)flushCloudOnHide();});
+ window.addEventListener('pagehide',flushCloudOnHide);
+ setInterval(()=>{if(!document.hidden)cloudSync();},30000);
+}
+
+
 async function boot() {
   // 在微信里打开的话，先拦一道（不然会以为记忆丢了）
   if (isWeChatBrowser()) { wechatWarn(); return; }
@@ -5272,6 +5427,7 @@ async function boot() {
   }
 
   renderAll();
+  await initCloudPush();
   await resumeAbsence();
   if(S.absence)scheduleBusyReturn();
   // 迁移和存储异常仍提示；正常版本与记录数量在设置页查看，不每次插入聊天。
@@ -5303,6 +5459,7 @@ async function boot() {
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', async () => {
     if (document.hidden) { hiddenAt = Date.now(); return; }
+    if(cloudEnabled())await cloudSync();
     await resumeAbsence();
     if (useServer()) { await pullFromServer(); renderAll(); }
     if (hiddenAt && Date.now() - hiddenAt > 10 * 60 * 1000) maybeCatchUp();
