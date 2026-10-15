@@ -235,6 +235,8 @@ setTimeout(function () {
       <input class="t" id="apiKey" type="password" placeholder="sk-..." autocomplete="off">
       <label class="f">模型</label>
       <input class="t" id="model" placeholder="deepseek-flash">
+      <label class="f">接收回复的方式</label>
+      <select class="t" id="replyTransport"><option value="stream">持续接收</option><option value="json">完整接收（持续连接容易中断时可试）</option></select>
       <div style="display:flex;gap:10px">
         <div style="flex:1">
           <label class="f">温度（越高越随性）</label>
@@ -246,13 +248,12 @@ setTimeout(function () {
         </div>
       </div>
       <label class="f" for="brainMode">理解与思考</label><select class="t" id="brainMode"><option value="auto">自动：需要理解和推理时认真想</option><option value="deep">深入：每次都认真想</option><option value="quick">快速：直接聊天</option></select><div class="hint">自动模式会根据问题和纠正信号选择，简单招呼保持快速。认真思考仍只显示聊天回复，会更慢、增加 API 用量，也可能判断错何时需要想。思考时另留 4,096—8,192 的生成额度，额度不等于实际用量。官方连接中的旧模型名称会使用当前 Flash；自定义连接保留你的模型名称。</div>
-      <label class="f">由电脑转发（可留空）</label>
+      <label class="f">电脑同步地址（可留空）</label>
       <input class="t" id="serverUrl" placeholder="http://192.168.1.5:8787">
       <div class="hint">
-        Key 只存在<b>这台手机</b>的浏览器里，不会发给别人。<br>
-        要是手机上直接连不通（提示跨域），就在电脑上双击 <b>启动.cmd</b>，
-        把它显示的地址填到上面那栏，再点保存。<br>
-        填了电脑地址以后，聊天记录和长期记忆在电脑上也有一份，两边可以换着用。
+        Key 保存在这台设备的浏览器里，聊天时发给你配置的接口；启用电脑同步时也会同步连接配置。不会写进上传的网页文件。<br>
+        上面的电脑地址用于同步记录，不能单独解决 DeepSeek 连接失败。<br>
+        手机连不上时，先点“测试一下”；持续连接容易中断时，可试“完整接收”。
       </div>
 
       <label class="f">联网小助手（填了它就能知道当下的事）</label>
@@ -274,6 +275,7 @@ setTimeout(function () {
         <button class="b" id="save-conn">保存</button>
         <button class="b ghost" id="test-conn">测试一下</button>
       </div>
+      <div class="hint">连接测试只发送一条虚构短消息，不读取聊天记录，会产生少量 API 用量。</div>
       <div class="hint" id="testResult" style="white-space:pre-wrap"></div>
     </div>
 
@@ -675,7 +677,7 @@ export const SYSTEM_TEMPLATE = [
 const LS = 'sunyiming.v1';
 // 这一版的编号 —— 打包时会替换成真正的时间。
 // 她在设置页看这一行，就知道自己打开的是新版、还是被 iOS 缓存的旧版。
-const BUILD_ID = "对话核心 v2 · 连接与日常衔接修正";
+const BUILD_ID = "对话核心 v2 · 手机连接排查";
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 
@@ -4017,13 +4019,15 @@ function buildMessages() {
   return out;
 }
 
-function apiBase() {
-  let b = (S.cfg.baseUrl || '').trim().replace(/\/+$/, '');
+function chatEndpoint(base) {
+  let b = (base || '').trim().replace(/\/+$/, '');
   if (!b) b = 'https://api.deepseek.com';
+  if (/\/chat\/completions$/.test(b)) return b;
   if (!/\/v\d+$/.test(b) && !/\/chat\/completions$/.test(b)) b += '/v1';
-  return b;
+  return b+'/chat/completions';
 }
-const chatUrl = () => (/\/chat\/completions$/.test(S.cfg.baseUrl || '') ? S.cfg.baseUrl : apiBase() + '/chat/completions');
+function apiBase() { return chatEndpoint(S.cfg.baseUrl).replace(/\/chat\/completions$/,''); }
+const chatUrl = () => chatEndpoint(S.cfg.baseUrl);
 
 function authHeaders() {
   const k = (S.cfg.apiKey || '').trim();
@@ -4069,14 +4073,36 @@ function apiResponseError(text,finish,requireComplete=false) {
  if(!String(text||'').trim())throw new Error(finish==='length'?'接口输出额度已用完，但没有回复正文；没有把思考内容当成回复。':'接口没有返回回复正文，请重试上一条消息。');
  return text;
 }
+function connectionFailure(error,phase='request') {
+ if(!/load failed|failed to fetch|fetch failed|networkerror|network request failed|network.*(?:lost|error)|terminated/i.test(String(error?.message||error)))return error;
+ const offline=typeof navigator!=='undefined'&&navigator.onLine===false;
+ const message=offline?'浏览器当前显示离线，请恢复网络后重试。':phase==='response'?'已经收到接口响应，但接收回复时连接中断。可以试试“完整接收方式重试”。':'浏览器没能取得接口响应。可能是网络、接口地址或浏览器访问限制；仅凭这个错误还不能确定。请先点右上角设置里的“测试一下”。';
+ const result=new Error(message);result.connectionFailure=true;return result;
+}
+async function probeConnection(config) {
+ const key=String(config.apiKey||'').trim();if(!key)throw new Error('请先填写 API Key，再测试。');
+ const official=/^https:\/\/api\.deepseek\.com(?:\/|$)/i.test(config.baseUrl||'https://api.deepseek.com');
+ const selected=config.model||'deepseek-flash',model=official&&/^(deepseek-chat|deepseek-reasoner)$/i.test(selected)?'deepseek-flash':selected;
+ const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),30000);let phase='request';
+ try {
+  const res=await fetch(chatEndpoint(config.baseUrl),{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+key},signal:ctl.signal,body:JSON.stringify({model,messages:[{role:'user',content:'只回复：收到'}],max_tokens:512,stream:false,...deepseekReplyOptions(model)})});phase='response';
+  if(!res.ok){const hints={401:'Key 未被接受，请检查填写是否完整。',402:'接口提示余额不足。',403:'接口拒绝访问，请检查账户或接口权限。',404:'接口地址或模型不存在。',429:'请求过多或额度受限，请稍后再试。'};throw new Error('HTTP '+res.status+'：'+(hints[res.status]||(res.status>=500?'接口服务暂时异常，请稍后再试。':'接口没有接受请求。')));}
+  const data=await res.json();apiResponseError(data.choices?.[0]?.message?.content||'',data.choices?.[0]?.finish_reason);
+  return '小消息连接成功（完整接收）。这次没有发送你的聊天记录；正式聊天若仍失败，可能与持续连接、请求大小或当时网络有关，这项测试不能保证长对话成功。';
+ } catch(e){if(e.name==='AbortError')throw new Error('测试等待30秒仍未完成；尚不能判断是网络还是接口响应慢。');throw connectionFailure(e,phase);}
+ finally{clearTimeout(timer);}
+}
 async function streamReply(messages,onDelta) {
  const model=modelForMessages(messages),thinkingPlan=replyThinkingPlan(messages);
- const body={model,messages,...(thinkingPlan.enabled?{}:{temperature:Number(S.cfg.temperature)||0.85}),max_tokens:thinkingPlan.maxTokens,stream:true,...deepseekReplyOptions(model,thinkingPlan.enabled,thinkingPlan.effort)};
+ const streaming=S.cfg.replyTransport!=='json';
+ const body={model,messages,...(thinkingPlan.enabled?{}:{temperature:Number(S.cfg.temperature)||0.85}),max_tokens:thinkingPlan.maxTokens,stream:streaming,...deepseekReplyOptions(model,thinkingPlan.enabled,thinkingPlan.effort)};
  const ctl=new AbortController(),watchdog=replyWatchdog(ctl,thinkingPlan);
+ let phase='request';
  try {
   const res=await fetch(chatUrl(),{method:'POST',headers:authHeaders(),body:JSON.stringify(body),signal:ctl.signal});
   if(!res.ok){let message='';try{message=(await res.json()).error?.message||''}catch{}throw new Error('接口返回 '+res.status+(message?'：'+message:''));}
-  if(!res.body||/application\/json/i.test(res.headers?.get('content-type')||'')){
+  phase='response';
+  if(!streaming||!res.body||/application\/json/i.test(res.headers?.get('content-type')||'')){
    const j=await res.json();if(j.error)throw new Error(j.error.message||'接口错误');const t=apiResponseError(j.choices?.[0]?.message?.content||'',j.choices?.[0]?.finish_reason,thinkingPlan.enabled);onDelta(t);return t;
   }
   const reader=res.body.getReader(),dec=new TextDecoder('utf-8');let buf='',full='',finish='';
@@ -4095,7 +4121,7 @@ async function streamReply(messages,onDelta) {
    buf+=dec.decode();if(buf.trim())line(buf);
   }finally{reader.releaseLock?.();}
   return apiResponseError(full,finish,thinkingPlan.enabled);
- }catch(e){if(e.name==='AbortError')throw new Error(watchdog.reason()==='total'?'这次接口响应时间过长，回复还没完成。可以重试上一条。':'接口较长时间没有继续返回内容，已停止等待。可以重试上一条。');throw e;}
+ }catch(e){if(e.name==='AbortError')throw new Error(watchdog.reason()==='total'?'这次接口响应时间过长，回复还没完成。可以重试上一条。':'接口较长时间没有继续返回内容，已停止等待。可以重试上一条。');throw connectionFailure(e,phase);}
  finally{watchdog.stop();}
 }
 async function plainCall(messages,maxTokens=900,options={}) {
@@ -4678,7 +4704,13 @@ async function send(text, opts) {
     const note=sysNote('⚠️ '+(e.message||String(e))+'\n'+((withImg||retryMessage?.img)?'你的消息和照片保留着，不用重新发送照片。':'你的消息保留着，点击下方按钮即可重试。'));
     const retry=el('button','b','重试上一条');
     retry.onclick=async()=>{if(busy)return;retry.disabled=true;try{await send('',{retry:true});}finally{retry.disabled=false;}};
-    note.appendChild(retry);setStatus('回复未完成');typingOff();
+    note.appendChild(retry);
+    if(e.connectionFailure&&S.cfg.replyTransport!=='json'){
+      const alternate=el('button','b ghost','用完整接收方式重试');
+      alternate.onclick=async()=>{if(busy)return;alternate.disabled=true;S.cfg.replyTransport='json';save(true);try{await send('',{retry:true});}finally{alternate.disabled=false;}};
+      note.appendChild(alternate);
+    }
+    setStatus('回复未完成');typingOff();
   } finally {
     busy = false; S._respondingToUser=false;
     typingOff(); if(!hisQueue.length)refreshHeader();
@@ -4715,6 +4747,7 @@ function fillSettings() {
   $('#baseUrl').value = c.baseUrl || '';
   $('#apiKey').value = c.apiKey || '';
   $('#model').value = modelForMessages([]);
+  $('#replyTransport').value = c.replyTransport==='json'?'json':'stream';
   $('#temp').value = c.temperature ?? 0.85;
   $('#brainMode').value = c.brainMode || 'auto';
   $('#maxTokens').value = c.maxTokens ?? 1024;
@@ -4809,6 +4842,7 @@ function bindUI() {
     S.cfg.model = $('#model').value.trim() || 'deepseek-flash';
     S.cfg.temperature = parseFloat($('#temp').value) || 0.85;
     S.cfg.brainMode = $('#brainMode').value || 'auto';
+    S.cfg.replyTransport = $('#replyTransport').value==='json'?'json':'stream';
     S.cfg.maxTokens = parseInt($('#maxTokens').value) || 1024;
     S.cfg.serverUrl = $('#serverUrl').value.trim().replace(/\/+$/, '');
     S.cfg.webUrl = $('#webUrl').value.trim().replace(/\/+$/, '');
@@ -4889,24 +4923,12 @@ function bindUI() {
   });
 
   $('#test-conn').addEventListener('click', async () => {
-    const box = $('#testResult'); box.textContent = '测试中…';
-    const k = $('#apiKey').value.trim();
-    const b = $('#baseUrl').value.trim() || 'https://api.deepseek.com';
-    const m = $('#model').value.trim() || 'deepseek-flash';
+    const box = $('#testResult'),button=$('#test-conn');box.textContent = '测试中（最多等待30秒）…';button.disabled=true;
     try {
-      let url = b.replace(/\/+$/, '');
-      if (!/\/chat\/completions$/.test(url)) { if (!/\/v\d+$/.test(url)) url += '/v1'; url += '/chat/completions'; }
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + k },
-        body: JSON.stringify({ model: m, messages: [{ role: 'user', content: '只回复两个字：收到' }], max_tokens: 512, stream: false, ...deepseekReplyOptions(m) }),
-      });
-      if (!r.ok) { box.textContent = '❌ 接口返回 ' + r.status + '：' + (await r.text()).slice(0, 200); return; }
-      const j = await r.json();
-      box.textContent = '✅ 通了：' + (j.choices?.[0]?.message?.content || '(空)');
+      box.textContent='✅ '+await probeConnection({apiKey:$('#apiKey').value.trim(),baseUrl:$('#baseUrl').value.trim(),model:$('#model').value.trim()});
     } catch (e) {
-      box.textContent = '❌ 失败：' + (e.message || e) + '\n（如果提示跨域/CORS，就把「由电脑转发」那一栏填上电脑地址）';
-    }
+      box.textContent = '❌ '+(e.message||String(e));
+    } finally{button.disabled=false;}
   });
 
   $('#save-pin').addEventListener('click', () => {
