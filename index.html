@@ -675,7 +675,7 @@ export const SYSTEM_TEMPLATE = [
 const LS = 'sunyiming.v1';
 // 这一版的编号 —— 打包时会替换成真正的时间。
 // 她在设置页看这一行，就知道自己打开的是新版、还是被 iOS 缓存的旧版。
-const BUILD_ID = "对话核心 v2 · 亲近回应实测修正";
+const BUILD_ID = "对话核心 v2 · 连接与日常衔接修正";
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 
@@ -1280,6 +1280,7 @@ const CHAT_BUBBLE_POLICY = `【日常表达：短句连发，这一段优先于�
 认真问题、情绪和追问仍要答清楚，只是分成口语小句。写材料、润色或用户明确要详细说明时可以正常长说，别为了短句截断引用、条件句、链接或代码。保留原来意思，不制造故意含糊和未完成的“因为、我是想问”。`;
 const REASONING_POLICY = `【理解与推理的工作方法】
 在内部先核对这句接着哪段对话、她在问谁、想知道什么：表面有问句不代表只要字面回答，带情绪也不代表不需要答案。遇到纠正，先定位具体错处，不靠道歉掩盖。
+她省略主语说“起来上班”“去吃饭”“好困”，不一定是在命令你，也可能是在讲她自己的状态；结合上一轮判断，不自动把她的动作认成你的动作。不确定时自然接她已经表达的部分。你已说吃过、出门或到单位，就不能随口又说刚起床；只有明确又躺下、午睡等新经过才可能变化。共享困意可以，但别只把她的“我困”换成“我也困”就结束。
 把用户亲口说过的事实、已确认记忆、程序给的模拟计划、你先前的说法和未知猜测区分开。冲突时按最新明确纠正核对主体、时间与范围；旧说法错了就改，不为了表面一致一直重复错误。没有结果、原因或经历的依据就承认不知道，不能用角色语气补成事实。
 需要判断时看条件、目标、依赖顺序与实际取舍。先给自己的结论和最有用的理由；有不同解释时说明哪里不确定，必要时问一个关键小问题，不把猜测说成读懂了她全部心理。她只想轻松闹时自然接话，不每轮都分析她。
 情绪和问题同时出现，既回应让她难过或开心的具体事情，也完成她问的问题。她反复问可能想确认、撒娇、没被满足或没听懂，先依据当前反应理解，再推进，不批评她重复。
@@ -1905,7 +1906,8 @@ function routineDepartureSpec(kind) {
   const end=life.plan.events.find(x=>x.id===life.eventId)?.end;const remaining=end-routineMinute();if(remaining>=10)mins=Math.min(mins,remaining);
  }
  const phrases={work:'我先处理手头这点事',meal:'我先吃饭',shower:'我去洗澡',game:'我打会儿游戏',nap:'我眯一会儿',out:life.plan.trip?'我先去处理出差这边的事':'我出去走走'};
- return {...base,mins,notice:(phrases[kind]||'我先去忙点事')+'，大概'+mins+'分钟，有空了就回来找你'};
+ const duration=mins<25?'二十分钟左右':mins<40?'半小时左右':mins<55?'四十来分钟':'一小时左右';
+ return {...base,mins,notice:(phrases[kind]||'我先去忙点事')+'，'+duration+'，回来找你'};
 }
 function renderRoutinePreview() {
  const box=$('#routine-preview');if(!box)return;box.replaceChildren();
@@ -4052,7 +4054,15 @@ function replyThinkingPlan(messages) {
  const enabled=capable&&mode!=='quick'&&(mode==='deep'||(!image&&engaged)||(image&&complex));
  const effort=mode==='deep'||complex?'high':'low';
  const ordinary=Math.max(512,Math.min(16384,Number(S.cfg.maxTokens)||1024));
- return {enabled,effort,maxTokens:enabled?Math.max(ordinary,effort==='high'?8192:4096):ordinary,timeout:enabled?180000:60000};
+ return {enabled,effort,maxTokens:enabled?Math.max(ordinary,effort==='high'?8192:4096):ordinary,timeout:enabled?180000:90000};
+}
+function replyWatchdog(ctl,plan) {
+ let idleTimer,stopped=false,reason='';
+ const abort=why=>{if(!stopped){reason=why;ctl.abort();}};
+ const reset=ms=>{clearTimeout(idleTimer);idleTimer=setTimeout(()=>abort('idle'),ms);};
+ const totalTimer=setTimeout(()=>abort('total'),plan.enabled?360000:240000);
+ reset(plan.timeout);
+ return {progress(){if(!stopped)reset(plan.enabled?90000:60000);},reason:()=>reason,stop(){stopped=true;clearTimeout(idleTimer);clearTimeout(totalTimer);}};
 }
 function apiResponseError(text,finish,requireComplete=false) {
  if(requireComplete&&finish==='length'&&String(text||'').trim())throw new Error('这次思考与回复额度已用完，正文没有完整结束；没有发送半截回复。可以重试或改用快速模式。');
@@ -4062,7 +4072,7 @@ function apiResponseError(text,finish,requireComplete=false) {
 async function streamReply(messages,onDelta) {
  const model=modelForMessages(messages),thinkingPlan=replyThinkingPlan(messages);
  const body={model,messages,...(thinkingPlan.enabled?{}:{temperature:Number(S.cfg.temperature)||0.85}),max_tokens:thinkingPlan.maxTokens,stream:true,...deepseekReplyOptions(model,thinkingPlan.enabled,thinkingPlan.effort)};
- const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),thinkingPlan.timeout);
+ const ctl=new AbortController(),watchdog=replyWatchdog(ctl,thinkingPlan);
  try {
   const res=await fetch(chatUrl(),{method:'POST',headers:authHeaders(),body:JSON.stringify(body),signal:ctl.signal});
   if(!res.ok){let message='';try{message=(await res.json()).error?.message||''}catch{}throw new Error('接口返回 '+res.status+(message?'：'+message:''));}
@@ -4081,12 +4091,12 @@ async function streamReply(messages,onDelta) {
    if(typeof text==='string'){full+=text;onDelta(text);}
   };
   try{
-   while(true){const {done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();for(const item of lines)line(item);}
+   while(true){const {done,value}=await reader.read();if(done)break;if(value?.byteLength)watchdog.progress();buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();for(const item of lines)line(item);}
    buf+=dec.decode();if(buf.trim())line(buf);
   }finally{reader.releaseLock?.();}
   return apiResponseError(full,finish,thinkingPlan.enabled);
- }catch(e){if(e.name==='AbortError')throw new Error(thinkingPlan.enabled?'这次认真思考超过三分钟没有完成；消息保留着，可以重试或改用快速模式。':'接口超过一分钟没有完成，请重试上一条；照片仍在记录里。');throw e;}
- finally{clearTimeout(timer);}
+ }catch(e){if(e.name==='AbortError')throw new Error(watchdog.reason()==='total'?'这次接口响应时间过长，回复还没完成。可以重试上一条。':'接口较长时间没有继续返回内容，已停止等待。可以重试上一条。');throw e;}
+ finally{watchdog.stop();}
 }
 async function plainCall(messages,maxTokens=900,options={}) {
  const model=modelForMessages(messages),ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),options.requireComplete?180000:45000);
@@ -4665,7 +4675,7 @@ async function send(text, opts) {
     await autoReply(hint, text);
   } catch (e) {
     cancelDelivery();
-    const note=sysNote('⚠️ '+(e.message||String(e))+'\n你的消息保留着，不用重新发送照片。');
+    const note=sysNote('⚠️ '+(e.message||String(e))+'\n'+((withImg||retryMessage?.img)?'你的消息和照片保留着，不用重新发送照片。':'你的消息保留着，点击下方按钮即可重试。'));
     const retry=el('button','b','重试上一条');
     retry.onclick=async()=>{if(busy)return;retry.disabled=true;try{await send('',{retry:true});}finally{retry.disabled=false;}};
     note.appendChild(retry);setStatus('回复未完成');typingOff();
